@@ -48,7 +48,7 @@ d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.i
     cruce_tipo_loc = dominio,
   ) %>% 
   select(
-    anio,
+    llave, anio,
     cruce_cve_ent = cve_ent, cruce_edad = edad, cruce_niv = niv, cruce_gra = gra, 
     cruce_alfabet = p2_8, cruce_auto_indig = p2_10, cruce_lengua_indig = p2_11,
     cruce_ocupada = p2_13, cruce_pnea_pea = p2_14, cruce_pos_ocu = p2_15,
@@ -57,16 +57,31 @@ d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.i
   glimpse
 
 d_sec_iii <- foreign::read.dbf(
-  "~/downloads/bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_III.dbf", as.is = T
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_III.dbf"), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  mutate(llave = paste0(upm, viv_sel, hogar, n_ren)) %>% 
+  mutate(
+    anio = 2016,
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  select(
+   llave, anio, 
+   cruce_edo_civil_verif = p3_1, cruce_edo_civil_2 = p3_8,
+  ) %>% 
   glimpse
 
 d_sec_iv<- foreign::read.dbf(
-  "~/downloads/bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_IV.dbf", as.is = T
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_IV.dbf"), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
-  mutate(llave = paste0(upm, viv_sel, hogar, n_ren)) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  select(
+    llave, anio, 
+    cruce_ingreso_dummy = p4_1, sucio_ingreso = p4_2, sucio_ingreso_periodo = p4_2_1,
+    cruce_ingreso_pareja_dummy = p4_6_ab, cruce_ingreso_pareja_mensual = p4_7_ab
+  )
   glimpse

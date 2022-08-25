@@ -1,0 +1,7 @@
+Aquí tienes que descargar y descomprimir las bases de datos de la ENDIREH. ¡No cambies el nombre de las carpetas ni muevas los archivos!
+
+ENDIREH 2016:
+-Mujeres elegidas:
+https://www.inegi.org.mx/contenidos/programas/endireh/2016/microdatos/bd_mujeres_endireh2016_sitioinegi_dbf.zip
+-Características sociodemográficas de las personas residentes de las viviendas:
+https://www.inegi.org.mx/contenidos/programas/endireh/2016/microdatos/bd_sd_endireh2016_sitioinegi_dbf.zip
