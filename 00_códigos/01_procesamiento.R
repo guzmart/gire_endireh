@@ -40,6 +40,7 @@ paste_plot      <- function(x){paste0("03_gráficas/", x)}
 
 # Datos ----
 ## Selección de variables de interés ----
+### TSDEM - Sociodemográficos ----
 d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.is = T) %>% 
   janitor::clean_names() %>% 
   mutate(
@@ -56,6 +57,7 @@ d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.i
   ) %>% 
   glimpse
 
+### TSEC_III - Elegibilidad y situación conyugal ----
 d_sec_iii <- foreign::read.dbf(
   paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_III.dbf"), as.is = T
 ) %>%
@@ -70,6 +72,7 @@ d_sec_iii <- foreign::read.dbf(
   ) %>% 
   glimpse
 
+### TSEC_IV - Situación de ingresos y recursos ----
 d_sec_iv<- foreign::read.dbf(
   paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_IV.dbf"), as.is = T
 ) %>%
@@ -95,6 +98,9 @@ d_sec_iv<- foreign::read.dbf(
   ) %>% 
   glimpse
 
+### TSEC_
+
+### TSEC_IX - Atención obstétrica ----
 d_sec_ix <- foreign::read.dbf(
   paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_IX.dbf"), as.is = T
 ) %>%
@@ -156,8 +162,8 @@ d_sec_ix <- foreign::read.dbf(
     starts_with("cruce_afiliación"), cruce_lugar_atencion_parto = p9_7,
     starts_with("v_vob"), v_cesárea_dummy= p9_8_11, 
     v_cesárea_informaron_por_qué_dummy = p9_8_12,
-    v_cesárea_autorización_dummy = p9_8_13
-    
+    v_cesárea_autorización_dummy = p9_8_13,
+    v_anio_ult_parto = p9_6
   ) %>%
   glimpse()
 
