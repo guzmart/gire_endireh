@@ -47,13 +47,24 @@ d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.i
     anio = 2016,
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_tipo_loc = dominio,
+    cruce_auto_indig_dummy = ifelse(p2_10 < 3, "1", "2"),
+    cruce_g_edad = recode_g_edad(as.numeric(edad)),
+    cruce_escolaridad = recode_escolaridad(niv)
   ) %>% 
   select(
-    llave, anio,
-    cruce_cve_ent = cve_ent, cruce_edad = edad, cruce_niv = niv, cruce_gra = gra, 
-    cruce_alfabet = p2_8, cruce_auto_indig = p2_10, cruce_lengua_indig = p2_11,
-    cruce_ocupada = p2_13, cruce_pnea_pea = p2_14, cruce_pos_ocu = p2_15,
-    cruce_edo_civl = p2_16, cruce_tipo_loc, fac_viv:upm_dis
+    llave, anio, cruce_cve_ent = cve_ent, 
+    keep_edad_num, cruce_g_edad,
+    cruce_escolaridad, keep_escolaridad_num = gra, 
+    cruce_alfabet_dummy = p2_8, cruce_auto_indig_dummy, 
+    cruce_lengua_indig_dummy = p2_11, cruce_ocupada_dummy = p2_13, 
+    cruce_pnea_pea = p2_14, cruce_pos_ocu = p2_15,
+    cruce_tipo_loc, fac_viv:upm_dis
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
   ) %>% 
   glimpse
 
@@ -68,7 +79,11 @@ d_sec_iii <- foreign::read.dbf(
   ) %>% 
   select(
    llave, anio, 
-   cruce_edo_civil_verif = p3_1, cruce_edo_civil_2 = p3_8,
+   cruce_edo_civil = p3_1, cruce_edo_civil_2 = p3_8,
+  ) %>% 
+  mutate(
+    cruce_edo_civil = recode_cruce_edo_civil(cruce_edo_civil),
+    cruce_edo_civil_2 = recode_cruce_edo_civil_2(cruce_edo_civil_2)
   ) %>% 
   glimpse
 
@@ -94,11 +109,78 @@ d_sec_iv<- foreign::read.dbf(
     llave, anio, 
     cruce_ingreso_dummy = p4_1, sucio_ingreso = p4_2, sucio_ingreso_periodo = p4_2_1,
     cruce_ingreso_pareja_dummy = p4_6_ab, cruce_ingreso_pareja_mensual = p4_7_ab,
-    starts_with("cruce_ingreso_otro_"), cruce_cuenta_dinero_utilizar_como_quiera = p4_11,
+    starts_with("cruce_ingreso_otro_"), cruce_cuenta_dinero_utilizar_como_quiera_dummy = p4_11,
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
   ) %>% 
   glimpse
 
-### TSEC_
+### TSEC_VI - Ámbito escolar ----
+d_sec_vi <- foreign::read.dbf(
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_VI.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  rename(n_ren = ren_m_ele) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_escuela_dummy = p6_6_15
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
+
+### TSEC_VII - Ámbito laboral ----
+d_sec_vii <- foreign::read.dbf(
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_VII.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  rename(n_ren = ren_m_ele) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_trabajo_dummy = p7_9_13
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
+
+### TSEC_VIII - Ámbito comunitario----
+d_sec_viii <- foreign::read.dbf(
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_VIII.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  rename(n_ren = ren_m_ele) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_comunitario_dummy = p8_1_13
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
 
 ### TSEC_IX - Atención obstétrica ----
 d_sec_ix <- foreign::read.dbf(
@@ -123,8 +205,8 @@ d_sec_ix <- foreign::read.dbf(
     anio = 2016, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_afiliación = case_when(
-      cruce_afiliación_privada == T ~ "Servicios médicos privados",
-      cruce_afiliación_pública == T ~ "Servicios médicos públicos",
+      cruce_afiliación_privada_dummy == T ~ "Servicios médicos privados",
+      cruce_afiliación_pública_dummy == T ~ "Servicios médicos públicos",
       T ~ "Ningún tipo de servicio"
     ),
     v_vob_alguna = case_when(
@@ -140,21 +222,6 @@ d_sec_ix <- foreign::read.dbf(
       p9_8_10 == "1" ~ T,
       T ~ F
     )
-      
-      # ifelse(
-      #   p9_8_1 > 1 &
-      #     p9_8_2 > 1 &
-      #     p9_8_3 > 1 &
-      #     p9_8_4 > 1 &
-      #     p9_8_5 > 1 &
-      #     p9_8_6 > 1 &
-      #     p9_8_7 > 1 & 
-      #     p9_8_8 > 1 &
-      #     p9_8_9 > 1 & 
-      #     p9_8_10 > 1,
-      #   0,
-      #   1
-      # )
   ) %>% 
   select(
     llave, anio, 
@@ -166,10 +233,126 @@ d_sec_ix <- foreign::read.dbf(
     v_anio_ult_parto = p9_6
   ) %>%
   glimpse()
+beepr::beep(1)
 
+### TSEC_X - Ámbito familiar----
+d_sec_x <- foreign::read.dbf(
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_x.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  rename(n_ren = ren_m_ele) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren),
+    cruce_vio_sex_familiar_dummy = case_when(
+      p10_1_3 < 4 ~ "1",
+      T ~ "2"
+    )
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_familiar_dummy
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
 
+### TSEC_XI - Familia de origen (infancia) ----
+d_sec_xi <- foreign::read.dbf(
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_XI.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  rename(n_ren = ren_m_ele) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren),
+    cruce_vio_sex_infancia_dummy = case_when(
+      p11_12_5 == "1" ~ "1",
+      p11_12_6 == "1" ~ "1",
+      T ~ "2"
+    )
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_infancia_dummy
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
 
+### TSEC_XIII - Relación actual o última relación ----
+d_sec_xiii <- foreign::read.dbf(
+  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_XIII.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  rename(n_ren = ren_m_ele) %>% 
+  mutate(
+    anio = 2016, 
+    llave = paste0(upm, viv_sel, hogar, n_ren),
+    cruce_vio_sex_pareja_expareja_dummy = case_when(
+      p13_1_25 < 4 ~ "1",
+      p13_1_26 < 4 ~ "1",
+      p13_1_27 < 4 ~ "1",
+      p13_1_29 < 4 ~ "1",
+      T ~ "2"
+    )
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_pareja_expareja_dummy
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
 
-
-
-
+# Unir base de datos ----
+d_endireh_vob <- d_sec_iii %>% 
+  left_join(
+    d_sdem
+  ) %>% 
+  left_join(
+    d_sec_iv
+  ) %>% 
+  left_join(
+    d_sec_vi
+  ) %>% 
+  left_join(
+    d_sec_vii
+  ) %>% 
+  left_join(
+    d_sec_viii
+  ) %>% 
+  left_join(
+    d_sec_ix
+  ) %>% 
+  left_join(
+    d_sec_x
+  ) %>% 
+  left_join(
+    d_sec_xi 
+  ) %>% 
+  left_join(
+    d_sec_xiii
+  ) %>% 
+  mutate(
+    across(
+      contains("cesárea"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  filter(filtro_embarazo == "1") %>% 
+  select(
+    llave, anio, edad,
+    starts_with("cruce_"), starts_with("v_"),
+    starts_with("sucio"), fac_viv:upm_dis
+  ) %>% 
+  glimpse
