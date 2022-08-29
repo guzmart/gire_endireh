@@ -102,4 +102,42 @@ recode_escolaridad <- function(x){
   )
 }
 
-# cruce_pnea_pea, cruce_pos_ocu, cruce_tipo_loc
+# Recodificar PEA y PNEA
+recode_pea_pnea <- function(x){
+  x = case_when(
+    x == 1 ~ "PEA - Ocupada", # hizo o vendió algún producto?
+    x == 2 ~ "PEA - Ocupada", # ayudó en algún negocio? (familiar o de otra persona)
+    x == 3 ~ "PEA - Ocupada", # crió animales o cultivó algo? (en el terreno o en casa, para autoconsumo o venta)
+    x == 4 ~ "PEA - Ocupada", # ofreció algún servicio por un pago? (cargó bolsas, lavó autos, cuidó niñas(os), etc.)
+    x == 5 ~ "PEA - Ocupada", # atendió su propio negocio?
+    x == 6 ~ "PEA - Ocupada", # tenía trabajo, pero no trabajó? (por licencia, incapacidad o vacaciones)
+    x == 7 ~ "PEA - Desocupada", # buscó trabajo?
+    x == 8 ~ "PNEA - No disponible", # ¿Es estudiante?
+    x == 9 ~ "PNEA - No disponible", # ¿Es jubilada(o) o pensionada(o)?
+    x == 10 ~ "PNEA - No disponible", # ¿Se dedica a los quehaceres de su hogar?
+    x == 11 ~ "PNEA - No disponible", # ¿Tiene alguna limitación física o mental que le impide trabajar?
+    x == 12 ~ "PNEA - Disponible" # ¿No trabajó?
+  )
+}
+
+# Recodificar posición de la ocupación 
+recode_pos_ocu <- function(x){
+  x = case_when(
+    x == 1 ~ "Trabajadores subordinados y remunerados", # empleado(a)? 
+    x == 2 ~ "Trabajadores subordinados y remunerados", # obrero(a)?
+    x == 3 ~ "Trabajadores por cuenta propia",# jornalero(a) o peón?
+    x == 4 ~ "Trabajadores por cuenta propia", # trabajador(a) por su cuenta (no contrata trabajadores/as)?
+    x == 5 ~ "Empleadores", # patrón(a) o empleador(a) (contrata trabajadores/as)?
+    x == 6 ~ "Trabajadores sin pago", # trabajador(a) sin pago?
+  )
+}
+
+# Recodificación de tipo de localidad
+recode_tipo_loc <- function(x){
+  x = case_when(
+    x == "C" ~ "Urbana",
+    x == "R" ~ "Rural",
+    x == "U" ~ "Urbana",
+    T ~ NA_character_
+  )
+}
