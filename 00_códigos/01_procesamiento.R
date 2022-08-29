@@ -46,18 +46,20 @@ d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.i
   mutate(
     anio = 2016,
     llave = paste0(upm, viv_sel, hogar, n_ren),
-    cruce_tipo_loc = dominio,
+    cruce_tipo_loc = recode_tipo_loc(dominio),
     cruce_auto_indig_dummy = ifelse(p2_10 < 3, "1", "2"),
     cruce_g_edad = recode_g_edad(as.numeric(edad)),
-    cruce_escolaridad = recode_escolaridad(niv)
+    cruce_escolaridad = recode_escolaridad(as.numeric(niv)),
+    cruce_pea_pnea = recode_pea_pnea(as.numeric(p2_14)),
+    cruce_pos_ocu = recode_pos_ocu(as.numeric(p2_15))
   ) %>% 
   select(
     llave, anio, cruce_cve_ent = cve_ent, 
-    keep_edad_num, cruce_g_edad,
+    keep_edad_num = edad, cruce_g_edad,
     cruce_escolaridad, keep_escolaridad_num = gra, 
     cruce_alfabet_dummy = p2_8, cruce_auto_indig_dummy, 
     cruce_lengua_indig_dummy = p2_11, cruce_ocupada_dummy = p2_13, 
-    cruce_pnea_pea = p2_14, cruce_pos_ocu = p2_15,
+    cruce_pea_pnea, cruce_pos_ocu,
     cruce_tipo_loc, fac_viv:upm_dis
   ) %>% 
   mutate(
@@ -351,8 +353,16 @@ d_endireh_vob <- d_sec_iii %>%
   ) %>% 
   filter(filtro_embarazo == "1") %>% 
   select(
-    llave, anio, edad,
+    llave, anio, starts_with("keep"),
     starts_with("cruce_"), starts_with("v_"),
     starts_with("sucio"), fac_viv:upm_dis
   ) %>% 
   glimpse
+
+saveRDS(d_endireh_vob, paste_out("01_endireh_2016_vob.rds"))
+
+d_endireh_vob %>% 
+  as_survey_design(ids = upm_dis, weights = fac_muj, strata = est_dis) %>% 
+  # group_by(v_vob_alguna) %>% 
+  summarise(prop = survey_mean(v_vob_alguna, na.rm = T))
+
