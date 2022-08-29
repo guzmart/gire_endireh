@@ -16,6 +16,8 @@
 Sys.setlocale("LC_TIME", "es_ES")
 options(scipen=999)
 
+# Ajuste por grupos pequeños en el cálculo de estratificados
+options(survey.lonely.psu="adjust")
 # Paquetes ----
 if(!require("lubridate")) install.packages("lubridate") & require("lubridate")
 if(!require("hot.deck")) install.packages("hot.deck") & require("hot.deck")
@@ -37,9 +39,9 @@ require(tidyverse)
 paste_inp       <- function(x){paste0("01_datos_crudos/" , x)}
 paste_out       <- function(x){paste0("02_datos_limpios/", x)}
 paste_plot      <- function(x){paste0("03_gráficas/", x)}
-
+source("00_códigos/00_funciones.R")
 # Datos ----
-## Selección de variables de interés ----
+## 2016 - Selección de variables de interés ----
 ### TSDEM - Sociodemográficos ----
 d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.is = T) %>% 
   janitor::clean_names() %>% 
@@ -223,11 +225,16 @@ d_sec_ix <- foreign::read.dbf(
       p9_8_9 == "1" ~ T,
       p9_8_10 == "1" ~ T,
       T ~ F
+    ),
+    filtro_parto = case_when(
+      as.numeric(p9_4_1) >= 1 ~ 1,
+      as.numeric(p9_4_2) >= 1 ~ 1,
+      T ~ 2
     )
   ) %>% 
   select(
     llave, anio, 
-    filtro_embarazo = p9_2, 
+    filtro_embarazo = p9_2, filtro_parto,
     starts_with("cruce_afiliación"), cruce_lugar_atencion_parto = p9_7,
     starts_with("v_vob"), v_cesárea_dummy= p9_8_11, 
     v_cesárea_informaron_por_qué_dummy = p9_8_12,
@@ -235,7 +242,7 @@ d_sec_ix <- foreign::read.dbf(
     v_anio_ult_parto = p9_6
   ) %>%
   glimpse()
-beepr::beep(1)
+beepr::beep(2)
 
 ### TSEC_X - Ámbito familiar----
 d_sec_x <- foreign::read.dbf(
@@ -351,7 +358,6 @@ d_endireh_vob <- d_sec_iii %>%
       ~ case_when(. == "1" ~ T, T ~ F)
     )
   ) %>% 
-  filter(filtro_embarazo == "1") %>% 
   select(
     llave, anio, starts_with("keep"),
     starts_with("cruce_"), starts_with("v_"),
@@ -359,10 +365,4 @@ d_endireh_vob <- d_sec_iii %>%
   ) %>% 
   glimpse
 
-saveRDS(d_endireh_vob, paste_out("01_endireh_2016_vob.rds"))
-
-d_endireh_vob %>% 
-  as_survey_design(ids = upm_dis, weights = fac_muj, strata = est_dis) %>% 
-  # group_by(v_vob_alguna) %>% 
-  summarise(prop = survey_mean(v_vob_alguna, na.rm = T))
-
+saveRDS(d_endireh_vob, paste_out("01_endireh_2016_vob_no_filter.rds"))
