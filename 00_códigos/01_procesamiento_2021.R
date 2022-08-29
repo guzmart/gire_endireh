@@ -42,8 +42,10 @@ paste_plot      <- function(x){paste0("03_gráficas/", x)}
 source("00_códigos/00_funciones.R")
 # Datos ----
 ## 2016 - Selección de variables de interés ----
+v_carpeta <- "bd_sd_endireh2021_sitioinegi_dbf/"
+v_carpeta_2 <- "bd_mujeres_endireh2021_sitioinegi_dbf/"
 ### TSDEM - Sociodemográficos ----
-d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.is = T) %>% 
+d_sdem <- read.dbf(paste_inp(paste0(v_carpeta, "TSDem.DBF")), as.is = T) %>% 
   janitor::clean_names() %>% 
   mutate(
     anio = 2016,
@@ -74,7 +76,7 @@ d_sdem <- read.dbf(paste_inp("bd_sd_endireh2016_sitioinegi_dbf/TSDem.DBF"), as.i
 
 ### TSEC_III - Elegibilidad y situación conyugal ----
 d_sec_iii <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_III.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_III.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   mutate(
@@ -93,7 +95,7 @@ d_sec_iii <- foreign::read.dbf(
 
 ### TSEC_IV - Situación de ingresos y recursos ----
 d_sec_iv<- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_IV.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_IV.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -125,7 +127,7 @@ d_sec_iv<- foreign::read.dbf(
 
 ### TSEC_VI - Ámbito escolar ----
 d_sec_vi <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_VI.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_VI.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -146,7 +148,7 @@ d_sec_vi <- foreign::read.dbf(
 
 ### TSEC_VII - Ámbito laboral ----
 d_sec_vii <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_VII.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_VII.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -167,7 +169,7 @@ d_sec_vii <- foreign::read.dbf(
 
 ### TSEC_VIII - Ámbito comunitario----
 d_sec_viii <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_VIII.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_VIII.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -188,7 +190,7 @@ d_sec_viii <- foreign::read.dbf(
 
 ### TSEC_IX - Atención obstétrica ----
 d_sec_ix <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_IX.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_IX.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -246,7 +248,7 @@ beepr::beep(2)
 
 ### TSEC_X - Ámbito familiar----
 d_sec_x <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_x.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_x.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -271,7 +273,7 @@ d_sec_x <- foreign::read.dbf(
 
 ### TSEC_XI - Familia de origen (infancia) ----
 d_sec_xi <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_XI.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_XI.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
@@ -297,7 +299,7 @@ d_sec_xi <- foreign::read.dbf(
 
 ### TSEC_XIII - Relación actual o última relación ----
 d_sec_xiii <- foreign::read.dbf(
-  paste_inp("bd_mujeres_endireh2016_sitioinegi_dbf/TB_SEC_XIII.dbf"), as.is = T
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_XIII.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
