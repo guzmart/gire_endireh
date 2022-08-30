@@ -42,13 +42,14 @@ paste_plot      <- function(x){paste0("03_gráficas/", x)}
 source("00_códigos/00_funciones.R")
 # Datos ----
 ## 2016 - Selección de variables de interés ----
-v_carpeta <- "bd_sd_endireh2021_sitioinegi_dbf/"
-v_carpeta_2 <- "bd_mujeres_endireh2021_sitioinegi_dbf/"
+v_carpeta <- "bd_sd_endireh2016_sitioinegi_dbf/"
+v_carpeta_2 <- "bd_mujeres_endireh2016_sitioinegi_dbf/"
+v_anio <- 2016
 ### TSDEM - Sociodemográficos ----
 d_sdem <- read.dbf(paste_inp(paste0(v_carpeta, "TSDem.DBF")), as.is = T) %>% 
   janitor::clean_names() %>% 
   mutate(
-    anio = 2016,
+    anio = v_anio,
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_tipo_loc = recode_tipo_loc(dominio),
     cruce_auto_indig_dummy = ifelse(p2_10 < 3, "1", "2"),
@@ -80,7 +81,7 @@ d_sec_iii <- foreign::read.dbf(
 ) %>%
   janitor::clean_names() %>% 
   mutate(
-    anio = 2016,
+    anio = v_anio,
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   select(
@@ -100,7 +101,7 @@ d_sec_iv<- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   rename_at(
@@ -132,7 +133,7 @@ d_sec_vi <- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   select(
@@ -153,7 +154,7 @@ d_sec_vii <- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   select(
@@ -174,7 +175,7 @@ d_sec_viii <- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   select(
@@ -208,7 +209,7 @@ d_sec_ix <- foreign::read.dbf(
   recode_dummy("v_vob_tipo_firma_involuntaria_de_papeles_dummy", p9_8_9) %>% 
   recode_dummy("v_vob_tipo_fue_aislada_de_su_bebé_por_más_de_5_horas_dummy", p9_8_10) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_afiliación = case_when(
       cruce_afiliación_privada_dummy == T ~ "Servicios médicos privados",
@@ -253,7 +254,7 @@ d_sec_x <- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_vio_sex_familiar_dummy = case_when(
       p10_1_3 < 4 ~ "1",
@@ -278,7 +279,7 @@ d_sec_xi <- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_vio_sex_infancia_dummy = case_when(
       p11_12_5 == "1" ~ "1",
@@ -304,7 +305,7 @@ d_sec_xiii <- foreign::read.dbf(
   janitor::clean_names() %>% 
   rename(n_ren = ren_m_ele) %>% 
   mutate(
-    anio = 2016, 
+    anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_vio_sex_pareja_expareja_dummy = case_when(
       p13_1_25 < 4 ~ "1",
@@ -361,7 +362,7 @@ d_endireh_vob <- d_sec_iii %>%
     )
   ) %>% 
   select(
-    llave, anio, starts_with("keep"),
+    llave, anio, starts_with("keep"), starts_with("filtro"), 
     starts_with("cruce_"), starts_with("v_"),
     starts_with("sucio"), fac_viv:upm_dis
   ) %>% 

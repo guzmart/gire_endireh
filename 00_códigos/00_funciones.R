@@ -141,3 +141,25 @@ recode_tipo_loc <- function(x){
     T ~ NA_character_
   )
 }
+
+# Agrupar y ponderar ----
+group_and_wponder_by <- function(.tabla, .variable_a_pond, .ponderador, .strata,.ids,...){
+  variable_a_pond <- enquo(.variable_a_pond)
+  ponderador <- enquo(.ponderador)
+  estrato <- enquo(.strata)
+  ids1 <- enquo(.ids)
+  group_vars <- enquos(...)
+  .tabla%>%
+    ungroup() %>%
+    filter(if_all(c(!!!group_vars,!!variable_a_pond), ~!is.na(.))) %>%
+    #filter(across (starts_with("f_"), ~ifelse(is.na(.),T,. == "Sí")))  %>%
+    as_survey_design(weights = !!ponderador,strata=!!estrato, ids = !!ids1) %>%
+    group_by(!!!group_vars,!!variable_a_pond, .drop = T) %>%
+    summarise(v_tot = survey_total(na.rm = T, vartype = "se", levels = 0.95),
+              v_obs = n(),
+              v_prop = survey_mean(na.rm = T, vartype = "se", levels = 0.95)) %>%
+    mutate(num_pregunta = rlang::as_string(enexpr(.variable_a_pond)),
+           fac = rlang::as_string(enexpr(.ponderador))) %>%
+    rename(preferencia = !!variable_a_pond) %>%
+    select(!!!group_vars,num_pregunta,fac, preferencia, contains(c("v_prop","v_obs", "v_tot")))
+}
