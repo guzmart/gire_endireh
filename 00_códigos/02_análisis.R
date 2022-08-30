@@ -42,18 +42,19 @@ paste_plot      <- function(x){paste0("03_gráficas/", x)}
 source("00_códigos/00_funciones.R")
 
 # Colores ----
-v_gire_cols_2 <- c("#d0d7bf", "#73AD40")
+v_gire_cols_2 <- c("#a8c589", "#73AD40")
 # Datos ----
 d_endireh_vob <- readRDS(paste_out("01_endireh_2016_vob_no_filter.rds")) %>% 
-  # bind_rows(
-  #   readRDS(paste_out("01_endireh_2021_vob_no_filter.rds"))
-  # ) %>% 
+  bind_rows(
+    readRDS(paste_out("01_endireh_2021_vob_no_filter_nodisc.rds"))
+  ) %>%
   glimpse
 
 # 1.  Número de partos ----
 ## 1.1. Últimos 5 años ----
 d_tot  <- 
   d_endireh_vob %>% 
+  filter(anio == 2016) %>% 
   mutate(
     keep = case_when(
       anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
@@ -71,6 +72,27 @@ d_tot  <-
     anio, v_anio_ult_parto
   ) %>%  
   ungroup() %>% 
+  bind_rows(
+    d_endireh_vob %>% 
+      filter(anio == 2021) %>% 
+      mutate(
+        keep = case_when(
+          anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+          anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+          T ~ 0
+        ),
+        v_parto_dummy = ifelse(filtro_parto==1, T, F)
+      ) %>% 
+      filter(keep == 1) %>% 
+      group_and_wponder_by(
+        .variable_a_pond=v_cesárea_dummy,
+        .ponderador =  fac_muj,
+        .strata = est_dis,
+        .ids = upm_dis,
+        anio, v_anio_ult_parto
+      ) %>%  
+      ungroup() 
+  ) %>% 
   glimpse()
 
 d_tot_anio <- d_tot %>% 
@@ -116,6 +138,7 @@ ggplot(
 ggsave(filename = paste_plot("01_01_tot_partos_5_anios.png"), 
        width = 15, height = 15, 
        dpi = 200, bg= "transparent")
+
 
 ## 1.2. Por año de último parto ----
 título <- "Número de mujeres entre 15 y 49 años que tuvieron al menos un parto*"
@@ -167,6 +190,7 @@ ggsave(filename = paste_plot("01_02_tot_partos_anio_ult_parto.png"),
 ## 2.1. Últimos 5 años ----
 d_tot_anio  <- 
   d_endireh_vob %>% 
+  filter(anio == 2016) %>% 
   mutate(
     keep = case_when(
       anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
@@ -184,6 +208,27 @@ d_tot_anio  <-
     anio
   ) %>%  
   ungroup() %>% 
+  bind_rows(
+    d_endireh_vob %>% 
+      filter(anio == 2021) %>% 
+      mutate(
+        keep = case_when(
+          anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+          anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+          T ~ 0
+        ),
+        v_parto_dummy = ifelse(filtro_parto==1, T, F)
+      ) %>% 
+      filter(keep == 1) %>% 
+      group_and_wponder_by(
+        .variable_a_pond=v_cesárea_dummy,
+        .ponderador =  fac_muj,
+        .strata = est_dis,
+        .ids = upm_dis,
+        anio
+      ) %>%  
+      ungroup()
+  ) %>% 
   glimpse()
 
 
@@ -232,6 +277,7 @@ subtítulo <- "Por año de último parto;* entre paréntesis se indica el total 
 nota <- "Elaboración de GIRE con información de la ENDIREH (2016 y 2021)\n*La ENDIREH captura los partos ocurridos entre octubre de 2011 y octubre de 2016;\nla ENDIREH 2021, los ocurridos entre octubre de 2016 y octubre de 2021"
 d_tot  <- 
   d_endireh_vob %>% 
+  filter(anio == 2016) %>% 
   mutate(
     keep = case_when(
       anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
@@ -249,6 +295,27 @@ d_tot  <-
     anio, v_anio_ult_parto
   ) %>%  
   ungroup() %>% 
+  bind_rows(
+    d_endireh_vob %>% 
+      filter(anio == 2021) %>% 
+      mutate(
+        keep = case_when(
+          anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+          anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+          T ~ 0
+        ),
+        v_parto_dummy = ifelse(filtro_parto==1, T, F)
+      ) %>% 
+      filter(keep == 1) %>% 
+      group_and_wponder_by(
+        .variable_a_pond=v_cesárea_dummy,
+        .ponderador =  fac_muj,
+        .strata = est_dis,
+        .ids = upm_dis,
+        anio, v_anio_ult_parto
+      ) %>%  
+      ungroup() 
+  ) %>% 
   glimpse()
 
 ggplot(
@@ -263,7 +330,7 @@ ggplot(
   )
 ) + 
   geom_line(size = 2) + geom_point(size = 3.5) + 
-  geom_label(show.legend = F, vjust = -0.3, size = 6, family = "Ubuntu") +
+  geom_label(show.legend = F, size = 6, family = "Ubuntu", aes(vjust = ifelse(anio == 2021, -0.3, 1.3))) +
   scale_y_continuous(labels = scales::percent, limits = c(0,0.6)) +
   scale_color_manual("", values = v_gire_cols_2) +
   theme_bw() +
@@ -294,6 +361,7 @@ ggsave(filename = paste_plot("02_02_prop_cesáreas_anio_ult_parto.png"),
 ## 3.1. Últimos 5 años ----
 d_tot_anio  <- 
   d_endireh_vob %>% 
+  filter(anio == 2016) %>% 
   mutate(
     v_vob_alguna_2 = case_when(
       v_vob_alguna == T ~ T,
@@ -317,6 +385,33 @@ d_tot_anio  <-
     anio
   ) %>%  
   ungroup() %>% 
+  bind_rows(
+    d_endireh_vob %>% 
+      filter(anio == 2021) %>% 
+      mutate(
+        v_vob_alguna_2 = case_when(
+          v_vob_alguna == T ~ T,
+          v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+          v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+          T ~ F
+        ),
+        keep = case_when(
+          anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) ~ 1,
+          anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) ~ 1,
+          T ~ 0
+        ),
+        v_parto_dummy = ifelse(filtro_parto==1, T, F)
+      ) %>% 
+      filter(keep == 1) %>% 
+      group_and_wponder_by(
+        .variable_a_pond=v_vob_alguna_2,
+        .ponderador =  fac_muj,
+        .strata = est_dis,
+        .ids = upm_dis,
+        anio
+      ) %>%  
+      ungroup() 
+  ) %>% 
   glimpse()
 
 
@@ -369,6 +464,7 @@ subtítulo <- "Por año de último parto*"
 nota <- "Elaboración de GIRE con información de la ENDIREH (2016 y 2021)\n*La ENDIREH captura los partos ocurridos entre octubre de 2011 y octubre de 2016;\nla ENDIREH 2021, los ocurridos entre octubre de 2016 y octubre de 2021"
 d_tot  <- 
   d_endireh_vob %>% 
+  filter(anio == 2016) %>% 
   mutate(
     v_vob_alguna_2 = case_when(
       v_vob_alguna == T ~ T,
@@ -392,6 +488,33 @@ d_tot  <-
     anio, v_anio_ult_parto
   ) %>%  
   ungroup() %>% 
+  bind_rows(
+    d_endireh_vob %>% 
+      filter(anio == 2021) %>% 
+      mutate(
+        v_vob_alguna_2 = case_when(
+          v_vob_alguna == T ~ T,
+          v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+          v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+          T ~ F
+        ),
+        keep = case_when(
+          anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) ~ 1,
+          anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) ~ 1,
+          T ~ 0
+        ),
+        v_parto_dummy = ifelse(filtro_parto==1, T, F)
+      ) %>% 
+      filter(keep == 1) %>% 
+      group_and_wponder_by(
+        .variable_a_pond=v_vob_alguna_2,
+        .ponderador =  fac_muj,
+        .strata = est_dis,
+        .ids = upm_dis,
+        anio, v_anio_ult_parto
+      ) %>%  
+      ungroup()
+  ) %>% 
   glimpse()
 
 ggplot(
@@ -406,7 +529,7 @@ ggplot(
   )
 ) + 
   geom_line(size = 2) + geom_point(size = 3.5) + 
-  geom_label(show.legend = F, vjust = -0.3, size = 6, family = "Ubuntu") +
+  geom_label(show.legend = F, size = 6, family = "Ubuntu", aes(vjust = ifelse(anio == 2016, -0.3, 1.3))) +
   scale_y_continuous(labels = scales::percent, limits = c(0,0.5)) +
   scale_color_manual("", values = v_gire_cols_2) +
   theme_bw() +
@@ -436,11 +559,12 @@ ggsave(filename = paste_plot("03_02_prop_vob_alguna_anio_ult_parto.png"),
 # 4. Manifestaciones de violencia obstétrica ----
 ## 4.1. Últimos 5 años ----
 vars_to_cross <- names(d_endireh_vob)[str_detect(names(d_endireh_vob), "v_vob_tipo_")]
-d_tot_anio <- data.frame()
-for (var in vars_to_cross) {
+d_tot_anio_2016 <- data.frame()
+for (var in vars_to_cross[1:10]) {
   #stop()
   print(paste0("Doing for: "  ," and var: " , var))
   rum <- d_endireh_vob %>% 
+    filter(anio == 2016) %>% 
     mutate(
       v_vob_alguna_2 = case_when(
         v_vob_alguna == T ~ T,
@@ -461,13 +585,47 @@ for (var in vars_to_cross) {
                          .strata = estrato,
                          .ids = upm_dis,
                          #!!sym(cross_var),
-                         anio) 
+                         anio) %>% 
+    ungroup() 
   
-  d_tot_anio <- bind_rows(d_tot_anio,rum)
+  d_tot_anio_2016 <- bind_rows(d_tot_anio_2016,rum)
+}
+
+d_tot_anio_2021 <- data.frame()
+for (var in vars_to_cross) {
+  #stop()
+  print(paste0("Doing for: "  ," and var: " , var))
+  rum <- d_endireh_vob %>% 
+    filter(anio == 2021) %>% 
+    mutate(
+      v_vob_alguna_2 = case_when(
+        v_vob_alguna == T ~ T,
+        v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+        v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+        T ~ F
+      ),
+      keep = case_when(
+        anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) & v_vob_alguna_2 == T~ 1,
+        anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) & v_vob_alguna_2 == T~ 1,
+        T ~ 0
+      ),
+      v_parto_dummy = ifelse(filtro_parto==1, T, F)
+    ) %>% 
+    filter(keep == 1) %>% 
+    group_and_wponder_by(.variable_a_pond=!!sym(var),
+                         .ponderador =  fac_muj,
+                         .strata = estrato,
+                         .ids = upm_dis,
+                         #!!sym(cross_var),
+                         anio) %>% 
+    ungroup() 
+  
+  d_tot_anio_2021 <- bind_rows(d_tot_anio_2021,rum)
 }
 
 d_tot_anio_2 <- 
   d_endireh_vob %>% 
+  filter(anio == 2016) %>% 
   mutate(
     v_vob_cesárea_dummy = case_when(
       v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
@@ -494,6 +652,7 @@ d_tot_anio_2 <-
   ungroup() %>% 
   bind_rows(
     d_endireh_vob %>% 
+      filter(anio == 2016) %>% 
       mutate(
         v_vob_cesárea_dummy = case_when(
           v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
@@ -519,10 +678,66 @@ d_tot_anio_2 <-
       ) %>%  
       ungroup() 
   ) %>% 
+  bind_rows(
+    d_endireh_vob %>% 
+      filter(anio == 2021) %>% 
+      mutate(
+        v_vob_cesárea_dummy = case_when(
+          v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+          v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+          T ~ F
+        ),
+        v_cesárea_no_fue_informada_por_qué_dummy = ifelse(v_cesárea_informaron_por_qué_dummy==T, F, T),
+        v_cesárea_no_la_autorizó_dummy = ifelse(v_cesárea_autorización_dummy==T, F, T),
+        keep = case_when(
+          anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) & v_cesárea_dummy == T ~ 1,
+          anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) & v_cesárea_dummy == T ~ 1,
+          T ~ 0
+        ),
+        v_parto_dummy = ifelse(filtro_parto==1, T, F)
+      ) %>% 
+      filter(keep == 1) %>% 
+      group_and_wponder_by(
+        .variable_a_pond=v_cesárea_no_fue_informada_por_qué_dummy,
+        .ponderador =  fac_muj,
+        .strata = est_dis,
+        .ids = upm_dis,
+        anio
+      ) %>%  
+      ungroup() %>% 
+      bind_rows(
+        d_endireh_vob %>% 
+          filter(anio == 2021) %>% 
+          mutate(
+            v_vob_cesárea_dummy = case_when(
+              v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+              v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+              T ~ F
+            ),
+            v_cesárea_no_fue_informada_por_qué_dummy = ifelse(v_cesárea_informaron_por_qué_dummy==T, F, T),
+            v_cesárea_no_la_autorizó_dummy = ifelse(v_cesárea_autorización_dummy==T, F, T),
+            keep = case_when(
+              anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) & v_cesárea_dummy == T ~ 1,
+              anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 & !(as.numeric(cruce_lugar_atencion_parto) == 9 | as.numeric(cruce_lugar_atencion_parto) == 99) & v_cesárea_dummy == T ~ 1,
+              T ~ 0
+            ),
+            v_parto_dummy = ifelse(filtro_parto==1, T, F)
+          ) %>% 
+          filter(keep == 1) %>% 
+          group_and_wponder_by(
+            .variable_a_pond=v_cesárea_no_la_autorizó_dummy,
+            .ponderador =  fac_muj,
+            .strata = est_dis,
+            .ids = upm_dis,
+            anio
+          ) %>%  
+          ungroup() 
+      )
+  ) %>% 
   glimpse()
 
 
-d_tot_anio_complete <- d_tot_anio %>% 
+d_tot_anio_complete <- bind_rows(d_tot_anio_2016, d_tot_anio_2021) %>% 
   mutate(
     tipo = "VOB general",
     num_pregunta = str_to_sentence(

@@ -42,15 +42,16 @@ paste_plot      <- function(x){paste0("03_gráficas/", x)}
 source("00_códigos/00_funciones.R")
 # Datos ----
 ## 2016 - Selección de variables de interés ----
-v_carpeta <- "bd_sd_endireh2016_sitioinegi_dbf/"
-v_carpeta_2 <- "bd_mujeres_endireh2016_sitioinegi_dbf/"
-v_anio <- 2016
+v_carpeta <- "bd_endireh_2021_dbf/"
+v_carpeta_2 <- "bd_endireh_2021_dbf/"
+v_anio <- 2021
 ### TSDEM - Sociodemográficos ----
 d_sdem <- read.dbf(paste_inp(paste0(v_carpeta, "TSDem.DBF")), as.is = T) %>% 
   janitor::clean_names() %>% 
+  drop_na(ren_muj_el) %>% 
   mutate(
     anio = v_anio,
-    llave = paste0(upm, viv_sel, hogar, n_ren),
+    llave = paste0(upm, viv_sel, hogar, ren_muj_el),
     cruce_tipo_loc = recode_tipo_loc(dominio),
     cruce_auto_indig_dummy = ifelse(p2_10 < 3, "1", "2"),
     cruce_g_edad = recode_g_edad(as.numeric(edad)),
@@ -95,22 +96,21 @@ d_sec_iii <- foreign::read.dbf(
   glimpse
 
 ### TSEC_IV - Situación de ingresos y recursos ----
-d_sec_iv<- foreign::read.dbf(
+d_sec_iv <- foreign::read.dbf(
   paste_inp(paste0(v_carpeta_2, "TB_SEC_IV.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   rename_at(
    vars(starts_with("p4_8_")),
-   funs(rename_p4_8)
+   funs(rename_p4_8_2021)
   ) %>% 
   rename_at(
     vars(starts_with("p4_9_")),
-    funs(rename_p4_9)
+    funs(rename_p4_9_2021)
   ) %>% 
   select(
     llave, anio, 
@@ -126,39 +126,17 @@ d_sec_iv<- foreign::read.dbf(
   ) %>% 
   glimpse
 
-### TSEC_VI - Ámbito escolar ----
-d_sec_vi <- foreign::read.dbf(
-  paste_inp(paste0(v_carpeta_2, "TB_SEC_VI.dbf")), as.is = T
-) %>%
-  janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
-  mutate(
-    anio = v_anio, 
-    llave = paste0(upm, viv_sel, hogar, n_ren)
-  ) %>% 
-  select(
-    llave, anio, cruce_vio_sex_escuela_dummy = p6_6_15
-  ) %>% 
-  mutate(
-    across(
-      ends_with("_dummy"),
-      ~ case_when(. == "1" ~ T, T ~ F)
-    )
-  ) %>% 
-  glimpse
-
-### TSEC_VII - Ámbito laboral ----
+### TSEC_VII - Ámbito escolar ----
 d_sec_vii <- foreign::read.dbf(
   paste_inp(paste0(v_carpeta_2, "TB_SEC_VII.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   select(
-    llave, anio, cruce_vio_sex_trabajo_dummy = p7_9_13
+    llave, anio, cruce_vio_sex_escuela_dummy = p7_6_15
   ) %>% 
   mutate(
     across(
@@ -168,18 +146,17 @@ d_sec_vii <- foreign::read.dbf(
   ) %>% 
   glimpse
 
-### TSEC_VIII - Ámbito comunitario----
+### TSEC_VIII - Ámbito laboral ----
 d_sec_viii <- foreign::read.dbf(
   paste_inp(paste0(v_carpeta_2, "TB_SEC_VIII.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren)
   ) %>% 
   select(
-    llave, anio, cruce_vio_sex_comunitario_dummy = p8_1_13
+    llave, anio, cruce_vio_sex_trabajo_dummy = p8_9_14
   ) %>% 
   mutate(
     across(
@@ -189,25 +166,45 @@ d_sec_viii <- foreign::read.dbf(
   ) %>% 
   glimpse
 
-### TSEC_IX - Atención obstétrica ----
+### TSEC_IX - Ámbito comunitario----
 d_sec_ix <- foreign::read.dbf(
   paste_inp(paste0(v_carpeta_2, "TB_SEC_IX.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
-  recode_dummy("cruce_afiliación_pública_dummy", p9_1_1:p9_1_6, p9_1_8) %>% 
-  recode_dummy("cruce_afiliación_privada_dummy", p9_1_7) %>% 
-  recode_dummy("cruce_afiliación_ninguna_dummy", p9_1_9) %>% 
-  recode_dummy("v_vob_tipo_posiciones_incómodas_dummy", p9_8_1) %>% 
-  recode_dummy("v_vob_tipo_gritos_o_regaños_dummy", p9_8_2) %>% 
-  recode_dummy("v_vob_tipo_ofensas_dummy", p9_8_3) %>% 
-  recode_dummy("v_vob_tipo_fue_ignorada_dummy", p9_8_4) %>% 
-  recode_dummy("v_vob_tipo_anestecia_denegada_dummy", p9_8_5) %>% 
-  recode_dummy("v_vob_tipo_atención_tardada_por_gritos_o_quejas_dummy", p9_8_6) %>% 
-  recode_dummy("v_vob_tipo_método_anticonceptivo_o_esterlización_forzada_dummy", p9_8_7) %>% 
-  recode_dummy("v_vob_tipo_presión_para_aceptar_anticoncepción_o_esterilización_dummy", p9_8_8) %>% 
-  recode_dummy("v_vob_tipo_firma_involuntaria_de_papeles_dummy", p9_8_9) %>% 
-  recode_dummy("v_vob_tipo_fue_aislada_de_su_bebé_por_más_de_5_horas_dummy", p9_8_10) %>% 
+  mutate(
+    anio = v_anio, 
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  select(
+    llave, anio, cruce_vio_sex_comunitario_dummy = p10_1_14
+  ) %>% 
+  mutate(
+    across(
+      ends_with("_dummy"),
+      ~ case_when(. == "1" ~ T, T ~ F)
+    )
+  ) %>% 
+  glimpse
+
+### TSEC_X - Atención obstétrica ----
+d_sec_x <- foreign::read.dbf(
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_X.dbf")), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  recode_dummy("cruce_afiliación_pública_dummy", p10_1_1:p10_1_6, p10_1_8) %>% 
+  recode_dummy("cruce_afiliación_privada_dummy", p10_1_7) %>% 
+  recode_dummy("cruce_afiliación_ninguna_dummy", p10_1_9) %>% 
+  recode_dummy("v_vob_tipo_posiciones_incómodas_dummy", p10_8_1) %>% 
+  recode_dummy("v_vob_tipo_gritos_o_regaños_dummy", p10_8_2) %>% 
+  recode_dummy("v_vob_tipo_jalones_o_pellizcos", p10_8_3) %>% 
+  recode_dummy("v_vob_tipo_ofensas_dummy", p10_8_4) %>% 
+  recode_dummy("v_vob_tipo_fue_ignorada_dummy", p10_8_5) %>% 
+  recode_dummy("v_vob_tipo_anestecia_denegada_dummy", p10_8_6) %>% 
+  recode_dummy("v_vob_tipo_atención_tardada_por_gritos_o_quejas_dummy", p10_8_7) %>% 
+  recode_dummy("v_vob_tipo_método_anticonceptivo_o_esterlización_forzada_dummy", p10_8_8) %>% 
+  recode_dummy("v_vob_tipo_presión_para_aceptar_anticoncepción_o_esterilización_dummy", p10_8_9) %>% 
+  recode_dummy("v_vob_tipo_firma_involuntaria_de_papeles_dummy", p10_8_10) %>% 
+    recode_dummy("v_vob_tipo_fue_aislada_de_su_bebé_por_más_de_5_horas_dummy", p10_8_11) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
@@ -217,47 +214,46 @@ d_sec_ix <- foreign::read.dbf(
       T ~ "Ningún tipo de servicio"
     ),
     v_vob_alguna = case_when(
-      p9_8_1 == "1" ~ T,
-      p9_8_2 == "1" ~ T,
-      p9_8_3 == "1" ~ T,
-      p9_8_4 == "1" ~ T,
-      p9_8_5 == "1" ~ T,
-      p9_8_6 == "1" ~ T,
-      p9_8_7 == "1" ~ T,
-      p9_8_8 == "1" ~ T,
-      p9_8_9 == "1" ~ T,
-      p9_8_10 == "1" ~ T,
+      p10_8_1 == "1" ~ T,
+      p10_8_2 == "1" ~ T,
+      p10_8_3 == "1" ~ T,
+      p10_8_4 == "1" ~ T,
+      p10_8_5 == "1" ~ T,
+      p10_8_6 == "1" ~ T,
+      p10_8_7 == "1" ~ T,
+      p10_8_8 == "1" ~ T,
+      p10_8_9 == "1" ~ T,
+      p10_8_10 == "1" ~ T,
       T ~ F
     ),
     filtro_parto = case_when(
-      as.numeric(p9_4_1) >= 1 ~ 1,
-      as.numeric(p9_4_2) >= 1 ~ 1,
+      as.numeric(p10_4_1) >= 1 ~ 1,
+      as.numeric(p10_4_2) >= 1 ~ 1,
       T ~ 2
     )
   ) %>% 
   select(
     llave, anio, 
-    filtro_embarazo = p9_2, filtro_parto,
-    starts_with("cruce_afiliación"), cruce_lugar_atencion_parto = p9_7,
-    starts_with("v_vob"), v_cesárea_dummy= p9_8_11, 
-    v_cesárea_informaron_por_qué_dummy = p9_8_12,
-    v_cesárea_autorización_dummy = p9_8_13,
-    v_anio_ult_parto = p9_6
+    filtro_embarazo = p10_2, filtro_parto,
+    starts_with("cruce_afiliación"), cruce_lugar_atencion_parto = p10_7,
+    starts_with("v_vob"), v_cesárea_dummy= p10_8_12, 
+    v_cesárea_informaron_por_qué_dummy = p10_8_13,
+    v_cesárea_autorización_dummy = p10_8_14,
+    v_anio_ult_parto = p10_6anio, v_mes_ult_parto = p10_6mes
   ) %>%
   glimpse()
 beepr::beep(2)
 
-### TSEC_X - Ámbito familiar----
-d_sec_x <- foreign::read.dbf(
-  paste_inp(paste0(v_carpeta_2, "TB_SEC_x.dbf")), as.is = T
+### TSEC_XI - Ámbito familiar----
+d_sec_xi <- foreign::read.dbf(
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_XI.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_vio_sex_familiar_dummy = case_when(
-      p10_1_3 < 4 ~ "1",
+      p11_1_3 < 4 ~ "1",
       T ~ "2"
     )
   ) %>% 
@@ -272,18 +268,17 @@ d_sec_x <- foreign::read.dbf(
   ) %>% 
   glimpse
 
-### TSEC_XI - Familia de origen (infancia) ----
-d_sec_xi <- foreign::read.dbf(
-  paste_inp(paste0(v_carpeta_2, "TB_SEC_XI.dbf")), as.is = T
+### TSEC_XII - Familia de origen (infancia) ----
+d_sec_xii <- foreign::read.dbf(
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_XII.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_vio_sex_infancia_dummy = case_when(
-      p11_12_5 == "1" ~ "1",
-      p11_12_6 == "1" ~ "1",
+      p12_14_5 == "1" ~ "1",
+      p12_14_6 == "1" ~ "1",
       T ~ "2"
     )
   ) %>% 
@@ -298,20 +293,19 @@ d_sec_xi <- foreign::read.dbf(
   ) %>% 
   glimpse
 
-### TSEC_XIII - Relación actual o última relación ----
-d_sec_xiii <- foreign::read.dbf(
-  paste_inp(paste0(v_carpeta_2, "TB_SEC_XIII.dbf")), as.is = T
+### TSEC_XIV- Relación actual o última relación ----
+d_sec_xiv <- foreign::read.dbf(
+  paste_inp(paste0(v_carpeta_2, "TB_SEC_XIV.dbf")), as.is = T
 ) %>%
   janitor::clean_names() %>% 
-  rename(n_ren = ren_m_ele) %>% 
   mutate(
     anio = v_anio, 
     llave = paste0(upm, viv_sel, hogar, n_ren),
     cruce_vio_sex_pareja_expareja_dummy = case_when(
-      p13_1_25 < 4 ~ "1",
-      p13_1_26 < 4 ~ "1",
-      p13_1_27 < 4 ~ "1",
-      p13_1_29 < 4 ~ "1",
+      p14_1_25 < 4 ~ "1",
+      p14_1_26 < 4 ~ "1",
+      p14_1_27 < 4 ~ "1",
+      p14_1_29 < 4 ~ "1",
       T ~ "2"
     )
   ) %>% 
@@ -335,9 +329,6 @@ d_endireh_vob <- d_sec_iii %>%
     d_sec_iv
   ) %>% 
   left_join(
-    d_sec_vi
-  ) %>% 
-  left_join(
     d_sec_vii
   ) %>% 
   left_join(
@@ -350,10 +341,13 @@ d_endireh_vob <- d_sec_iii %>%
     d_sec_x
   ) %>% 
   left_join(
-    d_sec_xi 
+    d_sec_xi
   ) %>% 
   left_join(
-    d_sec_xiii
+    d_sec_xii 
+  ) %>% 
+  left_join(
+    d_sec_xiv
   ) %>% 
   mutate(
     across(
@@ -368,4 +362,4 @@ d_endireh_vob <- d_sec_iii %>%
   ) %>% 
   glimpse
 
-saveRDS(d_endireh_vob, paste_out("01_endireh_2016_vob_no_filter.rds"))
+saveRDS(d_endireh_vob, paste_out("01_endireh_2021_vob_no_filter_nodisc.rds"))
