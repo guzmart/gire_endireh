@@ -320,6 +320,111 @@ d_sec_xiv <- foreign::read.dbf(
   ) %>% 
   glimpse
 
+### TSEC_XIX - discapacidad ----
+d_sec_xix<- foreign::read.dbf(
+  paste_inp(paste0("bd_endireh_2021_dbf/TB_SEC_XIX.dbf")), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  #head(50) %>% 
+  mutate(
+    anio = 2021, 
+    llave = paste0(upm, viv_sel, hogar, n_ren)
+  ) %>% 
+  transmute(
+    llave, 
+    anio, 
+    cruce_discapacidad_dummy_física_caminar = case_when(
+      is.na(p19_1_1) ~ F,
+      as.numeric(p19_1_1)==1 ~ T,
+      as.numeric(p19_1_1)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_física_ver = case_when(
+      is.na(p19_1_2) ~ F,
+      as.numeric(p19_1_2)==1 ~ T,
+      as.numeric(p19_1_2)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_física_mover_brazos = case_when(
+      is.na(p19_1_3) ~ F,
+      as.numeric(p19_1_3)==1 ~ T,
+      as.numeric(p19_1_3)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_cognitiva_aprender_recordar_concentrarse = case_when(
+      is.na(p19_1_4) ~ F,
+      as.numeric(p19_1_4)==1 ~ T,
+      as.numeric(p19_1_4)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_física_escuchar = case_when(
+      is.na(p19_1_5) ~ F,
+      as.numeric(p19_1_5)==1 ~ T,
+      as.numeric(p19_1_5)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_física_bañar_vestirse_o_comer = case_when(
+      is.na(p19_1_6) ~ F,
+      as.numeric(p19_1_6)==1 ~ T,
+      as.numeric(p19_1_6)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_física_hablar = case_when(
+      is.na(p19_1_7) ~ F,
+      as.numeric(p19_1_7)==1 ~ T,
+      as.numeric(p19_1_7)==2 ~ T,
+      T ~ F
+    ),
+    cruce_discapacidad_dummy_cognitiva_problemas_emocionales = case_when(
+      is.na(p19_1_8) ~ F,
+      as.numeric(p19_1_8)==1 ~ T,
+      as.numeric(p19_1_8)==2 ~ T,
+      T ~ F
+    ),
+    
+    cruce_dificultad_dummy_física_caminar = case_when(
+      is.na(p19_1_1) ~ F,
+      as.numeric(p19_1_1)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_física_ver = case_when(
+      is.na(p19_1_2) ~ F,
+      as.numeric(p19_1_2)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_física_mover_brazos = case_when(
+      is.na(p19_1_3) ~ F,
+      as.numeric(p19_1_3)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_cognitiva_aprender_recordar_concentrarse = case_when(
+      is.na(p19_1_4) ~ F,
+      as.numeric(p19_1_4)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_física_escuchar = case_when(
+      is.na(p19_1_5) ~ F,
+      as.numeric(p19_1_5)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_física_bañar_vestirse_o_comer = case_when(
+      is.na(p19_1_6) ~ F,
+      as.numeric(p19_1_6)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_física_hablar = case_when(
+      is.na(p19_1_7) ~ F,
+      as.numeric(p19_1_7)==3 ~ T,
+      T ~ F
+    ),
+    cruce_dificultad_dummy_cognitiva_problemas_emocionales = case_when(
+      is.na(p19_1_8) ~ F,
+      as.numeric(p19_1_8)==3 ~ T,
+      T ~ F
+    ),
+  ) %>% 
+  glimpse
+
 # Unir base de datos ----
 d_endireh_vob <- d_sec_iii %>% 
   left_join(
@@ -348,7 +453,8 @@ d_endireh_vob <- d_sec_iii %>%
   ) %>% 
   left_join(
     d_sec_xiv
-  ) %>% 
+  ) %>%
+  left_join(d_sec_xix)
   mutate(
     across(
       contains("cesárea"),
@@ -362,4 +468,4 @@ d_endireh_vob <- d_sec_iii %>%
   ) %>% 
   glimpse
 
-saveRDS(d_endireh_vob, paste_out("01_endireh_2021_vob_no_filter_nodisc.rds"))
+saveRDS(d_endireh_vob, paste_out("01_endireh_2021_vob_no_filter.rds"))

@@ -166,6 +166,23 @@ recode_tipo_loc <- function(x){
   )
 }
 
+# Recodificar lugar de atención de parto
+recode_lugar_atencion_parto <- function(x){
+  x = case_when(
+    x == 1 ~ "Centro de salud",
+    x == 2 ~ "Hospital o Clínica del IMSS",
+    x == 3 ~ "Hospital o Clínica del ISSSTE",
+    x == 4 ~ "Hospital o Clínica del ISSSTE del estado",
+    x == 5 ~ "Otro hospital o clínica pública del estado",
+    x == 6 ~ "Hospital o Clínica privada",
+    x == 7 ~ "Consultorio Médico particular",
+    x == 8 ~ "En casa con partera o curandera(o)",
+    x == 9 ~ "Nadie la atendió, dio a luz sola",
+    x == 10 ~ "Otro"
+  )
+}
+
+
 # Agrupar y ponderar ----
 group_and_wponder_by <- function(.tabla, .variable_a_pond, .ponderador, .strata,.ids,...){
   variable_a_pond <- enquo(.variable_a_pond)
