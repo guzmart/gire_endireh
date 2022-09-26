@@ -1869,7 +1869,7 @@ d <- d_tot_anio %>%
   rename(cve_ent = cruce_cve_ent) %>% 
   left_join(
     readxl::read_excel(paste_inp("00_cve_ent.xlsx")) %>% 
-      select(cve_ent, ent = ent)
+      select(cve_ent, ent = entidad)
   ) %>% 
   filter(preferencia==T) %>% 
   select(anio, cve_ent, ent, v_prop) %>% 
@@ -1953,4 +1953,344 @@ ggplot(d_wide) +
 ggsave(filename = paste_plot("11_01_vob_alguna_ent.png"), 
        width = 15, height = 20, 
        dpi = 200, bg= "transparent")
+
+# 12 Localidad ----
+# 12.1 Localidad ----
+generar_cruce <- function(.tabla , .var_cruce) {
+  variable_cruce <- enquo(.var_cruce)
+  d_tot_anio  <- .tabla %>% 
+    filter(anio == 2016) %>% 
+    mutate(
+      v_vob_alguna_2 = case_when(
+        v_vob_alguna == T ~ T,
+        v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+        v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+        T ~ F
+      ),
+      keep = case_when(
+        anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+        anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+        T ~ 0
+      ),
+      v_parto_dummy = ifelse(filtro_parto==1, T, F)
+    ) %>% 
+    filter(keep == 1) %>% 
+    group_and_wponder_by(
+      .variable_a_pond=v_vob_alguna_2,
+      .ponderador =  fac_muj,
+      .strata = est_dis,
+      .ids = upm_dis,
+      anio, !!variable_cruce
+    ) %>%  
+    ungroup() %>% 
+    bind_rows(
+      .tabla %>% 
+        filter(anio == 2021) %>% 
+        mutate(
+          v_vob_alguna_2 = case_when(
+            v_vob_alguna == T ~ T,
+            v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+            v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+            T ~ F
+          ),
+          keep = case_when(
+            anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+            anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+            T ~ 0
+          ),
+          v_parto_dummy = ifelse(filtro_parto==1, T, F)
+        ) %>% 
+        filter(keep == 1) %>% 
+        group_and_wponder_by(
+          .variable_a_pond=v_vob_alguna_2,
+          .ponderador =  fac_muj,
+          .strata = est_dis,
+          .ids = upm_dis,
+          anio, !!variable_cruce
+        ) %>%  
+        ungroup()
+    ) %>% 
+    glimpse()
+  
+  
+}
+hacer_graf_cruce <- function(.tabla_datos, .var_cruce,.order = F,
+                             .show_error_bar = F,
+                             .subtitulo="Desagregación por tipo de localidad") {
+  variable_cruce <- enquo(.var_cruce)
+  d <- .tabla_datos %>% 
+    filter(preferencia==T) %>% 
+    select(anio, !!variable_cruce, v_prop, v_prop_se) %>% 
+    group_by(!!variable_cruce) %>% 
+    mutate(
+      diff = v_prop-lag(v_prop),
+      diff= ifelse(is.na(diff), lead(v_prop)-v_prop, diff),
+      diff = diff*(-1),
+    ) %>% 
+    glimpse
+
+  d_wide <- d %>%
+    select(!!variable_cruce, anio, v_prop) %>% 
+    pivot_wider(names_from = "anio", values_from = "v_prop") %>%
+    ungroup() %>% 
+    mutate(diff = round(`2016`-`2021`,4)) %>% 
+    left_join( d %>% 
+                 group_by(!!variable_cruce) %>% 
+                 mutate(maxx = case_when(
+                   diff>=0&anio==min(anio) ~ v_prop-(1.96*v_prop_se),
+                   diff<0&anio==min(anio) ~ v_prop+(1.96*v_prop_se),
+                   diff>=0&anio==max(anio) ~ v_prop+(1.96*v_prop_se),
+                   diff<0&anio==max(anio) ~ v_prop-(1.96*v_prop_se),
+                   T ~NA_real_
+                 )) %>% 
+                 arrange(!!variable_cruce,anio) %>% 
+                 mutate(subio= diff<=0) %>% 
+                 select(anio, maxx,!!variable_cruce, subio ) %>% 
+                 pivot_wider(names_from = anio, values_from = maxx, names_prefix = "v_") %>% 
+                 mutate(intersects = ifelse(subio, v_2021<=v_2016, v_2016<=v_2021 ),
+                        intersects = ifelse(intersects,"Intersección" ,"Sin intersección")) %>% 
+                 select(!!variable_cruce, intersects)) %>% 
+    glimpse()
+  if(.order){
+    d_wide <- d_wide %>% 
+      mutate(order = sucio_ingreso2_decil)
+  } else {
+    d_wide <- d_wide %>% 
+      mutate(order =  `2021`)
+  }
+  título <- "Porcentaje de mujeres entre 15 y 49 años en cuyo último parto sufrió de VOB"
+  subtítulo <- .subtitulo
+  nota <- "Elaboración de GIRE con información de la ENDIREH (2016 y 2021)"
+  maxD <- d %>% 
+    ungroup() %>% 
+    mutate(max1 = v_prop+v_prop_se*1.96) %>% 
+    summarise(max =max(max1, na.rm=T)) %>% pull(max)
+  col_error_bar = ifelse(.show_error_bar,"red", NA)
+  
+  ggplot(d_wide) +
+    geom_dumbbell(
+      aes(y = reorder(!!variable_cruce,order), 
+          #color = intersects,
+          x = `2016`, xend = `2021`, group = !!variable_cruce),
+      col = "#D2D0CD",
+      size=3, 
+    ) + 
+    geom_text(
+      data = d,
+      aes(y = reorder(!!variable_cruce, v_prop),x = v_prop, color =as.factor(anio), 
+          label = ifelse(anio == "2021" & diff < 0, scales::percent(v_prop,accuracy = 0.01), NA)),
+      hjust = -0.2, show.legend = F, size = 7, family = "Ubuntu"
+    ) +
+    geom_text(
+      data = d,
+      aes(y = reorder(!!variable_cruce, v_prop),x = v_prop, color =as.factor(anio), 
+          label = ifelse(anio == "2016" & diff < 0, scales::percent(v_prop,accuracy = 0.01), NA)),
+      hjust = 1.2, show.legend = F, size = 7, family = "Ubuntu"
+    ) +
+    geom_text(
+      data = d,
+      aes(y = reorder(!!variable_cruce, v_prop),x = v_prop, color =as.factor(anio), 
+          label = ifelse(anio == "2021" & diff > 0, scales::percent(v_prop,accuracy = 0.01), NA)),
+      hjust = 1.2, show.legend = F, size = 7, family = "Ubuntu"
+    ) +
+    geom_text(
+      data = d,
+      aes(y = reorder(!!variable_cruce, v_prop),x = v_prop, color =as.factor(anio), 
+          label = ifelse(anio == "2016" & diff > 0, scales::percent(v_prop,accuracy = 0.01), NA)),
+      hjust = -0.2, show.legend = F, size = 7, family = "Ubuntu"
+    ) +
+    geom_point(
+      data = d ,
+      aes(y = reorder(!!variable_cruce, v_prop),x = v_prop, color =as.factor(anio)), size = 7,alpha= .97
+    ) +
+    geom_errorbar(
+      data = d ,
+      aes(y = reorder(!!variable_cruce, v_prop),
+          x = v_prop, 
+          alpha = as.factor(anio),
+          xmin = v_prop-1.96*v_prop_se,
+          xmax = v_prop+1.96*v_prop_se,
+      ), size = 1, alpha= .5,color =col_error_bar,
+    )+
+    scale_x_continuous(labels = scales::percent, limits = c(0,ceiling(maxD*10)/10)) +
+    scale_fill_manual("", values = v_gire_cols_2) +
+    scale_color_manual("", values = c(v_gire_cols_2#, "red", "blue"
+    )) +
+    theme_bw() +
+    labs(
+      title = str_wrap(título, 45),
+      subtitle = subtítulo,
+      caption = nota
+    ) +
+    theme(
+      plot.title = element_text(size = 38, face = "bold", colour = "#777777", hjust = 0.5),
+      plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
+      plot.caption = element_text(size = 24),
+      panel.background = element_rect(fill = "transparent",colour = NA),
+      axis.title.y = element_blank(),
+      axis.title.x = element_blank(),
+      axis.text.x = element_text(size = 20),
+      axis.text.y = element_text(size = 15),
+      text = element_text(family = "Ubuntu"),
+      legend.text = element_text(size = 20),
+      legend.position = "top"
+    )
+}
+temp <- d_endireh_vob %>% 
+  generar_cruce(.var_cruce = cruce_tipo_loc)
+
+temp %>% 
+  hacer_graf_cruce(.var_cruce = cruce_tipo_loc)
+  
+ggsave(filename = paste_plot("12_01_vob_loc.png"), 
+       width = 10, height = 10, 
+       dpi = 200, bg= "transparent")
+
+# 13 Situación conyugal ----
+# 13.1 Situación conyugal ultimos 5 años (vob)----
+
+
+temp <- d_endireh_vob %>% 
+  generar_cruce(.var_cruce = cruce_edo_civil)
+temp %>% 
+  hacer_graf_cruce(.var_cruce= cruce_edo_civil,
+                   #.show_error_bar = F,
+                   .subtitulo = "Desagregación por situación conyugal")
+
+ggsave(filename = paste_plot("13_01_vob_edo_civil.png"), 
+       width = 15, height = 20, 
+       dpi = 200, bg= "transparent")
+
+# 14 Cesarea ----
+# 14.1 Cesarea ultimos 5 años (vob)----
+temp <- d_endireh_vob %>% 
+  mutate(v_cesárea_dummy = ifelse(v_cesárea_dummy==1,"Cesárea", "Parto" )) %>% 
+  generar_cruce(.var_cruce = v_cesárea_dummy)
+temp %>% 
+  hacer_graf_cruce(.var_cruce= v_cesárea_dummy,
+                   #.show_error_bar = F,
+                   .subtitulo = "Desagregación por tipo de nacimiento")
+
+ggsave(filename = paste_plot("14_01_vob_cesarea.png"), 
+       width = 10, height = 10, 
+       dpi = 200, bg= "transparent")
+
+# 15 Indígena ----
+# 15.1 Indígena ultimos 5 años (vob)----
+temp <- d_endireh_vob %>% 
+  mutate(cruce_auto_indig_dummy = ifelse(cruce_auto_indig_dummy==1,"Indígena", "No indígena" )) %>% 
+  generar_cruce(.var_cruce = cruce_auto_indig_dummy)
+temp %>% 
+  hacer_graf_cruce(.var_cruce= cruce_auto_indig_dummy,
+                   #.show_error_bar = F,
+                   .subtitulo = "Desagregación por autoidentificación indígena")
+
+ggsave(filename = paste_plot("15_01_vob_indigena.png"), 
+       width = 10, height = 10, 
+       dpi = 200, bg= "transparent")
+
+
+# 16 ingresoMensual ----
+# 16.1 ingresoMensual propio laboral ultimos 5 años (vob)----
+
+temp <- d_endireh_vob %>% 
+  filter(cruce_ingreso_dummy) %>% 
+  mutate(sucio_ingreso2 = case_when(
+    as.numeric(sucio_ingreso)==999999 ~NA_real_,
+    as.numeric(sucio_ingreso)==999998 ~NA_real_,
+    as.numeric(sucio_ingreso)==999997 ~NA_real_,
+    as.numeric(sucio_ingreso_periodo) == 1 ~ as.numeric(sucio_ingreso)* 4,
+    as.numeric(sucio_ingreso_periodo) == 2 ~ as.numeric(sucio_ingreso)* 2,
+    as.numeric(sucio_ingreso_periodo) == 3 ~ as.numeric(sucio_ingreso)* 1,
+    T ~ NA_real_
+  ),
+  sucio_ingreso2_decil = ntile(sucio_ingreso2, 10),
+  ) %>% 
+  generar_cruce(.var_cruce = sucio_ingreso2_decil)
+temp %>% 
+  hacer_graf_cruce(.var_cruce= sucio_ingreso2_decil,.order = T,
+                   #.show_error_bar = F,
+                   .subtitulo = "Desagregación por decil de ingreso propio laboral mensual")
+
+ggsave(filename = paste_plot("15_01_vob_ingreso_laboral_propio.png"), 
+       width = 15, height = 20, 
+       dpi = 200, bg= "transparent")
+
+# 16.2 ingresoMensual comun ultimos 5 años (vob)----
+
+temp <- d_endireh_vob %>% 
+  filter(if_any(c(cruce_ingreso_dummy,
+                  cruce_ingreso_pareja_dummy,
+                  cruce_ingreso_otro_jubilación_pensión_dummy,
+                  cruce_ingreso_otro_familiar_eeuu_dummy,
+                  cruce_ingreso_otro_familiar_mx_dummy,
+                  cruce_ingreso_otro_becas_escolares_hijes_dummy,
+                  cruce_ingreso_otro_becas_escolares_ud_dummy,
+                  cruce_ingreso_otro_programa_prospera_dummy,
+                  cruce_ingreso_otro_programa_social_dummy,
+                  cruce_ingreso_otro_otro_dummy),
+                ~ .
+  )) %>% 
+  mutate(across(
+    c(cruce_ingreso_otro_jubilación_pensión_mensual,
+      cruce_ingreso_otro_familiar_eeuu_mensual,
+      cruce_ingreso_otro_familiar_mx_mensual,
+      cruce_ingreso_otro_becas_escolares_hijes_mensual,
+      cruce_ingreso_otro_becas_escolares_ud_mensual,
+      cruce_ingreso_otro_programa_prospera_mensual,
+      cruce_ingreso_otro_programa_social_mensual,
+      cruce_ingreso_otro_otro_mensual,
+      cruce_ingreso_pareja_mensual), 
+    ~case_when(
+      as.numeric(.)==999999 ~0,
+      as.numeric(.)==999998 ~0,
+      as.numeric(.)==999997 ~0,
+      is.na(.) ~0,
+      T ~ as.numeric(.)
+    )
+    
+  ),
+  sucio_ingreso2 = case_when(
+    as.numeric(sucio_ingreso)==999999 ~0,
+    as.numeric(sucio_ingreso)==999998 ~0,
+    as.numeric(sucio_ingreso)==999997 ~0,
+    is.na(sucio_ingreso) ~0,
+    as.numeric(sucio_ingreso_periodo) == 1 ~ as.numeric(sucio_ingreso)* 4,
+    as.numeric(sucio_ingreso_periodo) == 2 ~ as.numeric(sucio_ingreso)* 2,
+    as.numeric(sucio_ingreso_periodo) == 3 ~ as.numeric(sucio_ingreso)* 1,
+    T ~ 0
+  ),
+  ingreso_total_mensual = cruce_ingreso_otro_jubilación_pensión_mensual+
+    cruce_ingreso_otro_familiar_eeuu_mensual+
+    cruce_ingreso_otro_familiar_mx_mensual+
+    cruce_ingreso_otro_becas_escolares_hijes_mensual+
+    cruce_ingreso_otro_becas_escolares_ud_mensual+
+    cruce_ingreso_otro_programa_prospera_mensual+
+    cruce_ingreso_otro_programa_social_mensual+
+    cruce_ingreso_otro_otro_mensual+
+    cruce_ingreso_pareja_mensual+
+    sucio_ingreso2,
+  sucio_ingreso2_decil = ntile(ingreso_total_mensual, 10),
+  ) %>% 
+  filter(!is.na(sucio_ingreso2)) 
+temp <- temp %>% 
+  generar_cruce(.var_cruce = sucio_ingreso2_decil)
+temp %>% 
+  hacer_graf_cruce(.var_cruce= sucio_ingreso2_decil,.order = T,
+                   #.show_error_bar = F,
+                   .subtitulo = "Desagregación por decil de ingresos totales mensuales")
+
+ggsave(filename = paste_plot("15_01_vob_ingreso_total_mensual.png"), 
+       width = 15, height = 20, 
+       dpi = 200, bg= "transparent")
+
+# 17 Adolescentes ----
+# 17.1 Adolescentes ultimos 5 años (vob) ----
+
+
+
+
+
+
+
 
