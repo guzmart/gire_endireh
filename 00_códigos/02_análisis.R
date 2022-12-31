@@ -2292,6 +2292,27 @@ ggsave(filename = paste_plot("15_01_vob_ingreso_total_mensual.png"),
 
 library(tidymodels)
 library(effects)
+library(stargazer)
+# ## Quick fix for stargazer <= 5.2.3 is.na() issue with long model names in R >= 4.2
+# # Unload stargazer if loaded
+# detach("package:stargazer",unload=T)
+# # Delete it
+# remove.packages("stargazer")
+# # Download the source
+# download.file("https://cran.r-project.org/src/contrib/stargazer_5.2.3.tar.gz", destfile = "stargazer_5.2.3.tar.gz")
+# # Unpack
+# untar("stargazer_5.2.3.tar.gz")
+# # Read the sourcefile with .inside.bracket fun
+# stargazer_src <- readLines("stargazer/R/stargazer-internal.R")
+# # Move the length check 5 lines up so it precedes is.na(.)
+# stargazer_src[1990] <- stargazer_src[1995]
+# stargazer_src[1995] <- ""
+# # Save back
+# writeLines(stargazer_src, con="stargazer/R/stargazer-internal.R")
+# # Compile and install the patched package
+# install.packages("stargazer", repos = NULL, type="source")
+
+
 `%+%` <- paste0
 `%notin%` <- Negate(`%in%`)
 violencias <- d_endireh_vob %>% select(contains("vob")) %>% names
@@ -2367,51 +2388,44 @@ vob_regresiones_data <- d_endireh_vob %>%
   ) %>% 
   filter(keep == 1)
 
+models_coeff <- tibble
 for(i in 1:length(violencias)){
   print("doing for i/"%+%i%+% " equals: " %+%violencias[i])
   tt <- vob_regresiones_data %>% 
-    select(starts_with(cruces), !!sym(violencias[i])) %>% 
+    select(starts_with(cruces), !!sym(violencias[i]),anio) %>% 
     mutate(across(cruce_ingreso_pareja_mensual,~as.numeric(.))) %>% 
     mutate(across(where(is.character),~as.factor(.))) %>% 
     mutate(across(!!sym(violencias[i]),~as.factor(.))) %>% 
     as_tibble
-  #lm <-  logistic_reg() %>%
-  #  fit(formula=as.formula(paste0(violencias[i]," ~ .")), tt)
+  #lm <-  logistic_reg() %>% fit(form, tt)
   form <- as.formula(paste0(violencias[i]," ~ ."))
   lm <- glm(form, data = tt, family = "binomial")
-
+  models_coeff <- models_coeff %>% 
+    bind_rows(lm %>% 
+                tidy %>% 
+                mutate(star = gtools::stars.pval(p.value),
+                       var_dependiente = violencias[i]))
   assign("model"%+%i,lm)
-  
 }
 
-model1 %>% tidy %>% mutate(var_dependiente = as.character(model1$formula)[2], star = gtools::stars.pval(p.value)) %>% 
-  bind_rows(model2 %>% tidy %>% mutate(var_dependiente = as.character(model2$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model3 %>% tidy %>% mutate(var_dependiente = as.character(model3$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model4 %>% tidy %>% mutate(var_dependiente = as.character(model4$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model5 %>% tidy %>% mutate(var_dependiente = as.character(model5$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model6 %>% tidy %>% mutate(var_dependiente = as.character(model6$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model7 %>% tidy %>% mutate(var_dependiente = as.character(model7$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model8 %>% tidy %>% mutate(var_dependiente = as.character(model8$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model9 %>% tidy %>% mutate(var_dependiente = as.character(model9$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model10 %>% tidy %>% mutate(var_dependiente = as.character(model10$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model11 %>% tidy %>% mutate(var_dependiente = as.character(model11$formula)[2], star = gtools::stars.pval(p.value))) %>% 
-  bind_rows(model12 %>% tidy %>% mutate(var_dependiente = as.character(model12$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+models_coeff %>% 
   openxlsx::write.xlsx("modelos.xlsx")
 
-stargazer::stargazer(model1,
-                     model2,
-                     model3,
-                     model4,
-                     model5,
-                     model6,
-                     model7,
-                     model8,
-                     model9,
-                     model10,
-                     model11,
-                     model12,
-                     type = "html",  
-          title = "Modelo VOB GIRE", out ="modelos.html")
+stargazer(model1,
+          model2,
+          model3,
+          model4,
+          model5,
+          model6,
+          model7,
+          model8,
+          model9,
+          model10,
+          model11,
+          model12,
+          type = "html",  
+          title = "Modelo VOB GIRE", 
+          out ="modelos.html")
 
 
 
