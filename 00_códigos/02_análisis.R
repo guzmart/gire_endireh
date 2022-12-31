@@ -2288,9 +2288,130 @@ ggsave(filename = paste_plot("15_01_vob_ingreso_total_mensual.png"),
 # 17.1 Adolescentes ultimos 5 años (vob) ----
 
 
+# 18 regresiones ----
 
+library(tidymodels)
+library(effects)
+`%+%` <- paste0
+`%notin%` <- Negate(`%in%`)
+violencias <- d_endireh_vob %>% select(contains("vob")) %>% names
+cruces <- d_endireh_vob %>% select(contains("cruce")) %>% names
+cruces <- c("cruce_edo_civil",                                                   
+            #"cruce_edo_civil_2",
+            #"cruce_cve_ent",                                                     
+            "cruce_g_edad",
+            "cruce_escolaridad",                                                 
+            "cruce_alfabet_dummy",
+            "cruce_auto_indig_dummy",                                            
+            #"cruce_lengua_indig_dummy",
+            "cruce_ocupada_dummy",                                               
+            #"cruce_pea_pnea",
+            #"cruce_pos_ocu",                                                     
+            "cruce_tipo_loc",
+            #"cruce_ingreso_dummy",                                               
+            #"cruce_ingreso_pareja_dummy",
+            "cruce_ingreso_pareja_mensual",                                      
+            #"cruce_ingreso_otro_jubilación_pensión_dummy",
+            #"cruce_ingreso_otro_familiar_eeuu_dummy",                            
+            #"cruce_ingreso_otro_familiar_mx_dummy",
+            #"cruce_ingreso_otro_becas_escolares_hijes_dummy",                    
+            #"cruce_ingreso_otro_becas_escolares_ud_dummy",
+            #"cruce_ingreso_otro_programa_prospera_dummy",                        
+            #"cruce_ingreso_otro_programa_social_dummy",
+            #"cruce_ingreso_otro_otro_dummy",                                     
+            #"cruce_ingreso_otro_jubilación_pensión_mensual",
+            #"cruce_ingreso_otro_familiar_eeuu_mensual",                          
+            #"cruce_ingreso_otro_familiar_mx_mensual",
+            #"cruce_ingreso_otro_becas_escolares_hijes_mensual",                  
+            #"cruce_ingreso_otro_becas_escolares_ud_mensual",
+            #"cruce_ingreso_otro_programa_prospera_mensual",                      
+            #"cruce_ingreso_otro_programa_social_mensual",
+            #"cruce_ingreso_otro_otro_mensual",                                   
+            #"cruce_cuenta_dinero_utilizar_como_quiera_dummy",
+            #"cruce_vio_sex_escuela_dummy",                                       
+            #"cruce_vio_sex_trabajo_dummy",
+            #"cruce_vio_sex_comunitario_dummy",                                   
+            #"cruce_afiliación_pública_dummy",
+            #"cruce_afiliación_privada_dummy",                                    
+            #"cruce_afiliación_ninguna_dummy",
+            "cruce_afiliación",                                                  
+            "cruce_lugar_atencion_parto"
+            #"cruce_vio_sex_familiar_dummy",                                      
+            #"cruce_vio_sex_infancia_dummy",
+            #"cruce_vio_sex_pareja_expareja_dummy",                               
+            #"cruce_discapacidad_dummy_física_caminar",
+            #"cruce_discapacidad_dummy_física_ver",                               
+            #"cruce_discapacidad_dummy_física_mover_brazos",
+            #"cruce_discapacidad_dummy_cognitiva_aprender_recordar_concentrarse", 
+            #"cruce_discapacidad_dummy_física_escuchar",
+            #"cruce_discapacidad_dummy_física_bañar_vestirse_o_comer",            
+            #"cruce_discapacidad_dummy_física_hablar",
+            #"cruce_discapacidad_dummy_cognitiva_problemas_emocionales",          
+            #"cruce_dificultad_dummy_física_caminar",
+            #"cruce_dificultad_dummy_física_ver",                                 
+            #"cruce_dificultad_dummy_física_mover_brazos",
+            #"cruce_dificultad_dummy_cognitiva_aprender_recordar_concentrarse",   
+            #"cruce_dificultad_dummy_física_escuchar",
+            #"cruce_dificultad_dummy_física_bañar_vestirse_o_comer",              
+            #"cruce_dificultad_dummy_física_hablar",
+            #"cruce_dificultad_dummy_cognitiva_problemas_emocionales"
+            )
+vob_regresiones_data <- d_endireh_vob %>% 
+  mutate(
+    keep = case_when(
+      anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+      anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+      T ~ 0
+    ),
+    v_parto_dummy = ifelse(filtro_parto==1, T, F)
+  ) %>% 
+  filter(keep == 1)
 
+for(i in 1:length(violencias)){
+  print("doing for i/"%+%i%+% " equals: " %+%violencias[i])
+  tt <- vob_regresiones_data %>% 
+    select(starts_with(cruces), !!sym(violencias[i])) %>% 
+    mutate(across(cruce_ingreso_pareja_mensual,~as.numeric(.))) %>% 
+    mutate(across(where(is.character),~as.factor(.))) %>% 
+    mutate(across(!!sym(violencias[i]),~as.factor(.))) %>% 
+    as_tibble
+  #lm <-  logistic_reg() %>%
+  #  fit(formula=as.formula(paste0(violencias[i]," ~ .")), tt)
+  form <- as.formula(paste0(violencias[i]," ~ ."))
+  lm <- glm(form, data = tt, family = "binomial")
 
+  assign("model"%+%i,lm)
+  
+}
+
+model1 %>% tidy %>% mutate(var_dependiente = as.character(model1$formula)[2], star = gtools::stars.pval(p.value)) %>% 
+  bind_rows(model2 %>% tidy %>% mutate(var_dependiente = as.character(model2$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model3 %>% tidy %>% mutate(var_dependiente = as.character(model3$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model4 %>% tidy %>% mutate(var_dependiente = as.character(model4$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model5 %>% tidy %>% mutate(var_dependiente = as.character(model5$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model6 %>% tidy %>% mutate(var_dependiente = as.character(model6$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model7 %>% tidy %>% mutate(var_dependiente = as.character(model7$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model8 %>% tidy %>% mutate(var_dependiente = as.character(model8$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model9 %>% tidy %>% mutate(var_dependiente = as.character(model9$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model10 %>% tidy %>% mutate(var_dependiente = as.character(model10$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model11 %>% tidy %>% mutate(var_dependiente = as.character(model11$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  bind_rows(model12 %>% tidy %>% mutate(var_dependiente = as.character(model12$formula)[2], star = gtools::stars.pval(p.value))) %>% 
+  openxlsx::write.xlsx("modelos.xlsx")
+
+stargazer::stargazer(model1,
+                     model2,
+                     model3,
+                     model4,
+                     model5,
+                     model6,
+                     model7,
+                     model8,
+                     model9,
+                     model10,
+                     model11,
+                     model12,
+                     type = "html",  
+          title = "Modelo VOB GIRE", out ="modelos.html")
 
 
 

@@ -109,10 +109,10 @@ for (var in vars_to_cross) {
     filter(keep == 1) %>% 
     mutate(
       cruce_discapacidad_cat = case_when(
-        cruce_discapacidad_alguna_dummy  ~ "Alguna discapacidad",
-        cruce_dificultad_alguna_dummy  ~ "Alguna dificultad",
-        cruce_sin_discapacidad_dificultad_dummy  ~ "Sin Discapacidad o Dificultad",
-        T ~ "Sin Discapacidad o Dificultad",#NA_character_ # o tal vez debería ser  "Sin Discapacidad o Dificultad",
+        cruce_discapacidad_alguna_dummy  ~ "Mujer con discapacidad",
+        cruce_dificultad_alguna_dummy  ~ "Mujer con dificultad",
+        cruce_sin_discapacidad_dificultad_dummy  ~ "Mujer sin discapacidad ni dificultad",
+        T ~ "Mujer sin discapacidad ni dificultad",#NA_character_ # o tal vez debería ser  "Sin Discapacidad o Dificultad",
       ),
     ) %>% 
     group_and_wponder_by(.variable_a_pond=v_vob_alguna_2,
@@ -130,7 +130,7 @@ for (var in vars_to_cross) {
 
   
 título <- "Porcentaje de mujeres entre 15 y 49 años en cuyo último parto sufrió de VOB"
-subtítulo <- "Desagregación por condición de discapacidad* o limitación**"
+subtítulo <- "Desagregación por prevalencia en tipos de violencia en la vida\n y condición de discapacidad* o limitación**"
 nota <- "Elaboración de GIRE con información de la ENDIREH (2021)\n*Incluye a las mujeres que tienen como respuesta 'No puede hacerlo' o\n'Lo hace con mucha dificultad' en al menos una de las actividades de la pregunta 19.1.\n**Incluye a las mujeres que únicamente tienen como respuesta 'Lo hace con poca dificultad'\nen alguna de las actividades de la pregunta 19.1."
 
 data_temp%>% 
@@ -141,11 +141,10 @@ data_temp%>%
     aes(
       x = cruce_g_edad, 
       y = reorder(stri_trans_totitle(stri_extract_last_words(stri_replace_all(stri_replace_all(violencia, fixed ="_dummy", ""), fixed ="_", " "))),-v_prop),
-      #tjtja= str_wrap(tipo,25),
       fill = v_prop
     )
   ) +
-  facet_wrap(~cruce_discapacidad_cat)+
+  facet_wrap(~str_wrap(cruce_discapacidad_cat,25))+
   geom_tile(col = "white", show.legend = F) +
   geom_text(aes(label = scales::percent(v_prop, accuracy = 0.1)), family = "Ubuntu", size = 7) +
   scale_fill_gradient("", high = "#ff6260", low = v_gire_cols_2[2])  +
@@ -164,12 +163,113 @@ data_temp%>%
     panel.background = element_rect(fill = "transparent",colour = NA),
     axis.title.y = element_blank(),
     axis.title.x = element_blank(),
-    axis.text.x = element_text(size = 15),
+    axis.text.x = element_text(size = 15, angle = 45),
     axis.text.y = element_text(size = 15),
     text = element_text(family = "Ubuntu"),
     legend.position = "none"
   )
 
 ggsave(filename = paste_plot("18_01_vob_alguna_disc_limit_física_cruce_g_edad_modalidad.png"), 
+       width = 15, height = 15, 
+       dpi = 200, bg= "transparent")
+
+## 18.1. Por grupos de edad y tipos ----
+vars_to_cross <- d_disc %>% select(starts_with("v_vob_tipo_") ) %>% names
+vars_to_cross <- c("v_vob_tipo_alguna_2", vars_to_cross)
+data_temp <- tibble()
+for (var in vars_to_cross) {
+  print(var)
+  rum <- d_disc %>% 
+    mutate(
+      v_vob_tipo_alguna_2 = case_when(
+        v_vob_alguna == T ~ T,
+        v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+        v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+        T ~ F
+      ),
+      keep = case_when(
+        anio == 2016 & as.numeric(v_anio_ult_parto) >= 2011 & as.numeric(v_anio_ult_parto) <= 2016 ~ 1,
+        anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
+        T ~ 0
+      ),
+      v_parto_dummy = ifelse(filtro_parto==1, T, F)
+    ) %>% 
+    filter(keep == 1) %>% 
+    mutate(
+      cruce_discapacidad_cat = case_when(
+        cruce_discapacidad_alguna_dummy  ~ "1. Mujer con discapacidad",
+        cruce_dificultad_alguna_dummy  ~ "2. Mujer con dificultad",
+        cruce_sin_discapacidad_dificultad_dummy  ~ "3. Mujer sin discapacidad ni dificultad",
+        T ~ "3. Mujer sin discapacidad ni dificultad",#NA_character_ # o tal vez debería ser  "Sin Discapacidad o Dificultad",
+      ),
+    ) 
+  
+  rum2 <- rum %>% 
+    group_and_wponder_by(.variable_a_pond=!!sym(var),
+                         .ponderador =  fac_muj,
+                         .strata = est_dis,
+                         .ids = upm_dis,
+                         #anio, 
+                         cruce_discapacidad_cat, cruce_g_edad
+    ) %>% 
+    bind_rows(
+      rum %>% 
+        group_and_wponder_by(.variable_a_pond=!!sym(var),
+                             .ponderador =  fac_muj,
+                             .strata = est_dis,
+                             .ids = upm_dis,
+                             #anio, 
+                             cruce_discapacidad_cat
+        ) %>% 
+        mutate(cruce_g_edad = "General")
+      
+    )
+  
+  data_temp <- bind_rows(data_temp,rum2)
+}
+
+
+
+
+título <- "Porcentaje de mujeres entre 15 y 49 años en cuyo último parto sufrió de VOB"
+subtítulo <- "Desagregación por condición de discapacidad* o limitación**"
+nota <- "Elaboración de GIRE con información de la ENDIREH (2021)\n*Incluye a las mujeres que tienen como respuesta 'No puede hacerlo' o\n'Lo hace con mucha dificultad' en al menos una de las actividades de la pregunta 19.1.\n**Incluye a las mujeres que únicamente tienen como respuesta 'Lo hace con poca dificultad'\nen alguna de las actividades de la pregunta 19.1."
+
+data_temp%>% 
+  filter(preferencia) %>% 
+  mutate(num_pregunta = stri_replace_all(num_pregunta, fixed ="_alguna_2", "_alguna")) %>% 
+  ggplot(
+    aes(
+      x = reorder(cruce_g_edad, ifelse(is.na(stri_extract_first(cruce_g_edad, regex ="[:digit:]")), 0, as.numeric(stri_extract_first(cruce_g_edad, regex ="[:digit:]")))), 
+      y = reorder(str_wrap(stri_trans_totitle(stri_replace_all(stri_replace_all(stri_replace_all(num_pregunta, fixed ="v_vob_tipo_", ""), fixed ="_dummy", ""), fixed ="_", " ")),30),-v_prop),
+      fill = v_prop
+    )
+  ) +
+  facet_wrap(~str_wrap(cruce_discapacidad_cat,25))+
+  geom_tile(col = "white", show.legend = F) +
+  geom_text(aes(label = scales::percent(v_prop, accuracy = 0.1)), family = "Ubuntu", size = 7) +
+  scale_fill_gradient("", high = "#ff6260", low = v_gire_cols_2[2])  +
+  guides(label = "none") +
+  scale_x_discrete(position = "bottom") +
+  theme_bw() +
+  labs(
+    title = str_wrap(título, 45),
+    subtitle = subtítulo,
+    caption = nota
+  ) +
+  theme(
+    plot.title = element_text(size = 40, face = "bold", colour = "#777777", hjust = 0.5),
+    plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
+    plot.caption = element_text(size = 24),
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 15, angle = 45),
+    axis.text.y = element_text(size = 15),
+    text = element_text(family = "Ubuntu"),
+    legend.position = "none"
+  )
+
+ggsave(filename = paste_plot("18_02_vob_alguna_disc_limit_física_cruce_g_edad_tipos.png"), 
        width = 15, height = 15, 
        dpi = 200, bg= "transparent")
