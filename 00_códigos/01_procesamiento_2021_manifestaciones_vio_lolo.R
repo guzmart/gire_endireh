@@ -41,7 +41,7 @@ paste_out       <- function(x){paste0("02_datos_limpios/", x)}
 paste_plot      <- function(x){paste0("03_gráficas/", x)}
 source("00_códigos/00_funciones.R")
 # Datos ----
-## 2016 - Selección de variables de interés ----
+## 2021 - Selección de variables de interés ----
 v_carpeta <- "bd_endireh_2021_dbf/"
 v_carpeta_2 <- "bd_endireh_2021_dbf/"
 v_anio <- 2021
@@ -974,15 +974,15 @@ d_sec_xii <- foreign::read.dbf(
     .names = "{.fn}_{.col}"),
     across(
       c(starts_with("p12_15_")),
-      .fns =  list("quien_padre"       = ~ case_when(. == "1" ~ T,T ~ F),
-                   "quien_madre"       = ~ case_when(. == "2" ~ T,T ~ F),
-                   "quien_padrastro"   = ~ case_when(. == "3" ~ T,T ~ F),
-                   "quien_abuelo"      = ~ case_when(. == "4" ~ T,T ~ F),
-                   "quien_hermano"     = ~ case_when(. == "5" ~ T,T ~ F),
-                   "quien_tio"         = ~ case_when(. == "6" ~ T,T ~ F),
-                   "quien_primo"       = ~ case_when(. == "7" ~ T,T ~ F),
-                   "quien_familiar"    = ~ case_when(. == "8" ~ T,T ~ F),
-                   "quien_nofamiliar"  = ~ case_when(. == "9" ~ T,T ~ F),
+      .fns =  list("quien_padre"       = ~ case_when(. == "01" ~ T,T ~ F),
+                   "quien_madre"       = ~ case_when(. == "02" ~ T,T ~ F),
+                   "quien_padrastro"   = ~ case_when(. == "03" ~ T,T ~ F),
+                   "quien_abuelo"      = ~ case_when(. == "04" ~ T,T ~ F),
+                   "quien_hermano"     = ~ case_when(. == "05" ~ T,T ~ F),
+                   "quien_tio"         = ~ case_when(. == "06" ~ T,T ~ F),
+                   "quien_primo"       = ~ case_when(. == "07" ~ T,T ~ F),
+                   "quien_familiar"    = ~ case_when(. == "08" ~ T,T ~ F),
+                   "quien_nofamiliar"  = ~ case_when(. == "09" ~ T,T ~ F),
                    "quien_desconocido" = ~ case_when(. == "10" ~ T,T ~ F),
                    "quien_otro"        = ~ case_when(. == "11" ~ T,T ~ F)
       ),
