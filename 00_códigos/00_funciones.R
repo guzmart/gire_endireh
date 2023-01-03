@@ -184,7 +184,7 @@ recode_lugar_atencion_parto <- function(x){
 
 
 # Agrupar y ponderar ----
-group_and_wponder_by <- function(.tabla, .variable_a_pond, .ponderador, .strata,.ids,...){
+group_and_wponder_by <- function(.tabla, .variable_a_pond, .ponderador, .strata,.ids,..., .nest=F){
   variable_a_pond <- enquo(.variable_a_pond)
   ponderador <- enquo(.ponderador)
   estrato <- enquo(.strata)
@@ -194,7 +194,7 @@ group_and_wponder_by <- function(.tabla, .variable_a_pond, .ponderador, .strata,
     ungroup() %>%
     filter(if_all(c(!!!group_vars,!!variable_a_pond), ~!is.na(.))) %>%
     #filter(across (starts_with("f_"), ~ifelse(is.na(.),T,. == "Sí")))  %>%
-    as_survey_design(weights = !!ponderador,strata=!!estrato, ids = !!ids1) %>%
+    as_survey_design(weights = !!ponderador,strata=!!estrato, ids = !!ids1,nest=.nest) %>%
     group_by(!!!group_vars,!!variable_a_pond, .drop = T) %>%
     summarise(v_tot = survey_total(na.rm = T, vartype = "se", levels = 0.95),
               v_obs = n(),

@@ -862,12 +862,11 @@ ggplot(
     col = paste0("ENDIREH - ", anio),
     fill = paste0("ENDIREH - ", anio)
   )
-) + 
-  geom_col(
-    width = 0.4,
-    position = position_dodge2()
-  ) +
-  geom_text(show.legend = F, hjust = -0.2, size = 8, family = "Ubuntu", position = position_dodge2(width = .9)) +
+) +
+  geom_col(width = 0.4,position = position_dodge2()) +
+  geom_text(show.legend = F, hjust = -0.2, size = 8, family = "Ubuntu", 
+            position = position_dodge2(width = .9)
+            ) +
   scale_x_continuous(labels = scales::percent, limits = c(0,0.4)) +
   scale_fill_manual("", values = v_gire_cols_2) +
   scale_color_manual("", values = v_gire_cols_2) +
@@ -894,6 +893,49 @@ ggplot(
 ggsave(filename = paste_plot("05_01_prop_lugar_at_parto_5_anios.png"), 
        width = 15, height = 15, 
        dpi = 200, bg= "transparent")
+
+ggplot(
+  d_tot_anio %>% 
+    mutate(preferencia = recode_lugar_atencion_parto(as.numeric(preferencia))) %>% 
+    drop_na(preferencia) #%>% pivot_wider(id_cols = preferencia,names_from = anio, values_from = v_prop,names_prefix = "v_prop_")
+    ,
+  aes(
+    x = v_prop,
+    y = reorder(str_wrap(preferencia,20), v_prop),
+    group = preferencia,
+    label = scales::percent(v_prop, accuracy = 0.1),
+    col = paste0("ENDIREH - ", anio),
+    fill = paste0("ENDIREH - ", anio)
+  )
+) +
+  geom_line(color ="grey")+
+  geom_point() +
+  geom_text(aes(x=ifelse(anio <2021,v_prop-.1,v_prop)),
+            show.legend = F, hjust = -0.2, size = 8, family = "Ubuntu", 
+            #position = position_dodge2(width = .9)
+  ) +
+  scale_x_continuous(labels = scales::percent, limits = c(-0.1,0.4)) +
+  scale_fill_manual("", values = v_gire_cols_2) +
+  scale_color_manual("", values = v_gire_cols_2) +
+  theme_bw() +
+  labs(
+    title = str_wrap(título, 45),
+    subtitle = subtítulo,
+    caption = nota
+  ) +
+  theme(
+    plot.title = element_text(size = 38, face = "bold", colour = "#777777", hjust = 0.5),
+    plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
+    plot.caption = element_text(size = 24),
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 20),
+    axis.text.y = element_text(size = 15),
+    text = element_text(family = "Ubuntu"),
+    legend.text = element_text(size = 20),
+    legend.position = "top"
+  )
 
 ## 5.2. Por año de último parto ----
 d_tot  <- 
@@ -1150,7 +1192,7 @@ nota <- "Elaboración de GIRE con información de la ENDIREH (2016 y 2021)"
 ggplot(
   d_tot %>% 
     mutate(cruce_lugar_atencion_parto = recode_lugar_atencion_parto(as.numeric(cruce_lugar_atencion_parto))) %>% 
-    filter(preferencia==T),
+filter(preferencia==T),
   aes(
     y = v_prop,
     x = v_anio_ult_parto,
@@ -1170,6 +1212,7 @@ ggplot(
     subtitle = subtítulo,
     caption = nota
   ) +
+  theme_minimal()+
   theme(
     plot.title = element_text(size = 38, face = "bold", colour = "#777777", hjust = 0.5),
     plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
@@ -2320,7 +2363,8 @@ cruces <- d_endireh_vob %>% select(contains("cruce")) %>% names
 cruces <- c("cruce_edo_civil",                                                   
             #"cruce_edo_civil_2",
             #"cruce_cve_ent",                                                     
-            "cruce_g_edad",
+            "cruce_edad",
+            #"cruce_g_edad",
             "cruce_escolaridad",                                                 
             "cruce_alfabet_dummy",
             "cruce_auto_indig_dummy",                                            
@@ -2384,22 +2428,28 @@ vob_regresiones_data <- d_endireh_vob %>%
       anio == 2021 & as.numeric(v_anio_ult_parto) >= 2016 & as.numeric(v_anio_ult_parto) <= 2021 ~ 1,
       T ~ 0
     ),
-    v_parto_dummy = ifelse(filtro_parto==1, T, F)
+    cruce_lugar_atencion_parto=recode_lugar_atencion_parto(cruce_lugar_atencion_parto),
+    v_parto_dummy = ifelse(filtro_parto==1, T, F),
+    cruce_edad =as.numeric(keep_edad_num),
   ) %>% 
-  filter(keep == 1)
+  filter(keep == 1) %>% 
+  as_survey_design(weights = fac_muj,strata=est_dis, ids = upm_dis, nest=T) 
+  
 
-models_coeff <- tibble
+models_coeff <- data.frame()
 for(i in 1:length(violencias)){
   print("doing for i/"%+%i%+% " equals: " %+%violencias[i])
   tt <- vob_regresiones_data %>% 
-    select(starts_with(cruces), !!sym(violencias[i]),anio) %>% 
+    select(starts_with(cruces), !!sym(violencias[i]),anio, fac_muj, est_dis, upm_dis) %>% 
     mutate(across(cruce_ingreso_pareja_mensual,~as.numeric(.))) %>% 
-    mutate(across(where(is.character),~as.factor(.))) %>% 
-    mutate(across(!!sym(violencias[i]),~as.factor(.))) %>% 
-    as_tibble
+    mutate(across(c(where(is.character),-est_dis,-upm_dis),~as.factor(.))) %>% 
+    mutate(across(!!sym(violencias[i]),~as.factor(.))) 
   #lm <-  logistic_reg() %>% fit(form, tt)
-  form <- as.formula(paste0(violencias[i]," ~ ."))
-  lm <- glm(form, data = tt, family = "binomial")
+  form <- as.formula(paste0(violencias[i]," ~ anio + ",paste(cruces,collapse =  " + ")))
+  #.ponderador =  fac_muj,
+  #.strata = est_dis,
+  #.ids = upm_dis,
+  lm <- survey::svyglm(form, design = tt, family = "binomial")
   models_coeff <- models_coeff %>% 
     bind_rows(lm %>% 
                 tidy %>% 
@@ -2411,21 +2461,245 @@ for(i in 1:length(violencias)){
 models_coeff %>% 
   openxlsx::write.xlsx("modelos.xlsx")
 
-stargazer(model1,
-          model2,
-          model3,
-          model4,
-          model5,
-          model6,
-          model7,
-          model8,
-          model9,
-          model10,
-          model11,
-          model12,
-          type = "html",  
-          title = "Modelo VOB GIRE", 
-          out ="modelos.html")
+stargazer::stargazer(model1,
+                     model2,
+                     model3,
+                     model4,
+                     model5,
+                     model6,
+                     model7,
+                     model8,
+                     model9,
+                     model10,
+                     model11,
+                     model12,
+                     type = "html",  
+                     title = "Modelo VOB GIRE", 
+                     out ="modelos.html")
 
+# 19 embarazo adolescente ----
+d_sec_xi <- readRDS("../gire_endireh/02_datos_limpios/violencia_familiaOrigen_2021.rds")
+ultra <- 
+  d_endireh_vob %>% 
+  #filter(keep_edad_num<20) %>% 
+  #count(filtro_embarazo) %>% 
+  #mutate(prop =n/sum(n)) 
+  as_tibble() %>% 
+  filter(anio==2021) %>% 
+  mutate(across(c(keep_edad_num,anio,v_anio_ult_parto),~as.numeric(.))) %>% 
+  mutate(edad_ultimo_parto = keep_edad_num - (anio-v_anio_ult_parto) ) %>% 
+  #filter(!is.na(v_anio_ult_parto)) %>% 
+  #select(keep_edad_num,anio,v_anio_ult_parto) %>% 
+  mutate(ult_emb_adol = edad_ultimo_parto<=19) %>% 
+  filter(ult_emb_adol) %>% 
+  select(-contains("v_vio_familiaOrigen")) %>% 
+  left_join(d_sec_xi) %>% 
+
+  filter(v_vio_familiaOrigen_Osexual)
+
+quienes <- ultra %>% 
+  select(contains("v_vio_familiaOrigen_")) %>%
+  select(-contains("_O",ignore.case = F)) %>% 
+  names
+
+data_temp <- tibble()
+for (var in quienes) {
+  print(var)
+  rum2 <- ultra %>% 
+    group_and_wponder_by(.variable_a_pond=!!sym(var),
+                         .ponderador =  fac_muj,
+                         .strata = est_dis,
+                         .ids = upm_dis,
+                         #anio,
+                         #cruce_g_edad
+    ) 
+  
+  data_temp <- bind_rows(data_temp,rum2)
+}
+
+
+título <- "Agresores de mujeres que reportaron un embarazo adolescente y una agresión sexual durante la infancia"
+subtítulo <- ""
+nota <- "Elaboración de GIRE con información de la ENDIREH (2021)"
+
+(stri_replace_all(stri_replace_all(stri_replace_all(unique(data_temp$num_pregunta), fixed ="v_vio_familiaOrigen_", ""), fixed ="_dummy", ""), fixed ="_", " "))
+data_temp %>% 
+  mutate(
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "padrastro", "padrastro/madrastra"),
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "abuelo", "abuelo(a)"),
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "hermano", "hermano(a)"),
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "tio", "tio(a)"),
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "primo", "primo(a)"),
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "_familiar", "_otro familiar"),
+    num_pregunta = stri_replace_all(num_pregunta, fixed = "nofamiliar", "vecino/conocido"),
+    
+         ) %>% 
+  filter(preferencia) %>% 
+  ggplot(aes(
+    x = reorder(str_wrap(stri_trans_totitle(stri_replace_all(stri_replace_all(stri_replace_all(num_pregunta, fixed ="v_vio_familiaOrigen_", ""), fixed ="_dummy", ""), fixed ="_", " ")),15),-v_prop),
+    y = v_prop,
+    label = percent(v_prop,.1),
+    fill =v_prop
+  ))+
+  geom_col(width = 0.8,)+
+  geom_text(col="white",vjust=1.1, family="Ubuntu", size=8)+
+  scale_y_percent()+
+  scale_fill_gradient(high=v_gire_cols_2[2], low=v_gire_cols_2[1])+
+  labs(
+    title = str_wrap(título, 50),
+    subtitle = subtítulo,
+    caption = nota
+  ) +
+  theme(
+    plot.title = element_text(size = 40, face = "bold", colour = "#777777", hjust = 0.5),
+    plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
+    plot.caption = element_text(size = 24),
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15),
+    text = element_text(family = "Ubuntu"),
+    legend.position = "none"
+  )
+
+ggsave(filename = paste_plot("19_01_vob_emb_adol_agreor.png"), 
+       width = 15, height = 20, 
+       dpi = 200, bg= "transparent")
+
+
+
+ultimo_embarazo <- foreign::read.dbf(
+  ("../equis_endireh/01_datos_crudos/bd_endireh_2021_dbf/TB_SEC_XIII.dbf"), as.is = T
+) %>%
+  janitor::clean_names() %>% 
+  mutate(  anio = 2021, 
+           llave = paste0(upm, viv_sel, hogar, n_ren)) %>% 
+  select(llave, anio, p13_2) 
+
+ultra <- d_endireh_vob %>% 
+  as_tibble() %>% 
+  filter(anio==2021) %>% 
+  select(-contains("v_vio_familiaOrigen")) %>% 
+  left_join(d_sec_xi) %>% 
+  #filter(v_vio_familiaOrigen_Osexual) %>% 
+  left_join(ultimo_embarazo)
+
+tt <- ultra %>% 
+  filter(p13_2<20) %>% 
+  group_and_wponder_by(.variable_a_pond=v_vio_familiaOrigen_Osexual,
+                       .ponderador =  fac_muj,
+                       .strata = est_dis,
+                       .ids = upm_dis,
+                       #anio,
+                       p13_2
+  ) %>% 
+  filter(preferencia) 
+título <- "Mujeres que reportaron haber sufrido un tipo de violencia sexual en su infancia por edad de primer embarazo"
+subtítulo <- ""
+nota <- "Elaboración de GIRE con información de la ENDIREH (2021)"
+tt %>% 
+  ggplot(aes(
+    x = reorder(p13_2, as.numeric(p13_2)),
+    y = v_prop,
+    label = percent(v_prop,.1),
+    fill =v_prop
+  ))+
+  geom_col(width = 0.8,)+
+  geom_text(col="white",vjust=1.1, family="Ubuntu", size=8)+
+  scale_y_percent()+
+  scale_fill_gradient(high=v_gire_cols_2[2], low=v_gire_cols_2[1])+
+  labs(
+    title = str_wrap(título, 50),
+    subtitle = subtítulo,
+    caption = nota
+  ) +
+  theme(
+    plot.title = element_text(size = 40, face = "bold", colour = "#777777", hjust = 0.5),
+    plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
+    plot.caption = element_text(size = 24),
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15),
+    text = element_text(family = "Ubuntu"),
+    legend.position = "none"
+  )
+
+ggsave(filename = paste_plot("19_02_vob_emb_adol_edad.png"), 
+       width = 15, height = 20, 
+       dpi = 200, bg= "transparent")
+  
+
+tt <- d_endireh_vob %>% 
+  #as_tibble() %>% 
+  filter(anio==2016) %>% 
+  bind_rows(d_endireh_vob %>% 
+              filter(anio==2021) %>% 
+              select(-contains("v_vio_familiaOrigen")) %>% 
+              left_join(d_sec_xi)
+            )
+
+tt2 <- tt  %>% 
+  mutate(
+    v_vob_tipo_alguna_2 = case_when(
+      v_vob_alguna == T ~ T,
+      v_cesárea_dummy == T & v_cesárea_informaron_por_qué_dummy == F ~ T,
+      v_cesárea_dummy == T & v_cesárea_autorización_dummy == F ~ T,
+      T ~ F
+    )) %>% 
+  filter(!is.na(upm_dis)) %>% 
+  group_and_wponder_by(.variable_a_pond=v_vob_tipo_alguna_2,
+                       .ponderador =  fac_muj,
+                       .strata = est_dis,
+                       .ids = upm_dis,
+                       anio,
+                       v_vio_familiaOrigen_Osexual,
+                       .nest=T
+  ) 
+  
+  
+  título <- "Porcentaje de mujeres entre 15 y 49 años en cuyo último parto sufrió de VOB"
+subtítulo <- "Por prevalencia de violencia sexual en su familia de origen"
+nota <- "Elaboración de GIRE con información de la ENDIREH (2016 y 2021)"
+tt2 %>% 
+  filter(preferencia) %>% 
+  filter(v_vio_familiaOrigen_Osexual) %>% 
+  #mutate(v_vio_familiaOrigen_Osexual = ifelse(v_vio_familiaOrigen_Osexual, "Sufrió Violencia Sexual", "No sufrió")) %>% 
+  ggplot(aes(
+    x = as.factor(anio),
+    y = v_prop,
+    #group = anio,
+    label = percent(v_prop,.1),
+    fill =as.factor(anio)
+  ))+
+  geom_col(width = 0.8,position = position_dodge(width = 1))+
+  geom_text(col="white",vjust=1.1, family="Ubuntu", size=12, 
+            position = position_dodge(width = 1))+
+  scale_y_percent()+
+  scale_fill_manual(values=v_gire_cols_2)+
+  labs(
+    title = str_wrap(título, 50),
+    subtitle = subtítulo,
+    caption = nota,
+    fill = "ENIGH año: "
+  ) +
+  theme(
+    plot.title = element_text(size = 40, face = "bold", colour = "#777777", hjust = 0.5),
+    plot.subtitle = element_text(size = 30, colour = "#777777", hjust = 0.5),
+    plot.caption = element_text(size = 24),
+    panel.background = element_rect(fill = "transparent",colour = NA),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_text(size = 15),
+    axis.text.y = element_text(size = 15),
+    text = element_text(family = "Ubuntu"),
+    legend.position = "none"
+  )
+
+ggsave(filename = paste_plot("19_03_vob_emb_adol_edad.png"), 
+       width = 15, height = 20, 
+       dpi = 200, bg= "transparent")
 
 
